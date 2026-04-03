@@ -1,5 +1,8 @@
 # UnityAI
 
-## [0. RollerBall](./MLAgent_Tutorial)
-네모난 공을 추적하고 먹는 강화학습 모델 연습
-- 기초적인 ML-Agents 사용법을 학습.
+## Installed Packages
+
+| Package | Version | Publisher |
+|---------|---------|-----------|
+| ML-Agents | 4.0.2 | Unity Technologies |
+| Assistant | 2.4.0-preview.1 | Unity Technologies |

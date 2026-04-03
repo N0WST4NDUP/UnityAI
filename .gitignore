@@ -114,7 +114,7 @@ checkpoints/
 results/
 
 # ML-Agents 타이머 (학습 중 자동 생성)
-**/[Aa]ssets/ML-Agents/Timers/
+[Aa]ssets/ML-Agents/Timers/
 
 # 실험 로그 (W&B, MLflow, TensorBoard, Lightning 등)
 wandb/
