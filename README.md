@@ -2,7 +2,6 @@
 
 ## Branches
 - > `main` - 강화학습을 위한 기본 환경 구성
-- `quadRobot` - 4족 보행 로봇 강화학습
 
 ## Installed Packages
 
