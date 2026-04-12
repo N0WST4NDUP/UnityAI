@@ -1,0 +1,145 @@
+---
+title: 학습 진행 상황
+last_updated: 2026-04-12
+---
+
+# 학습 진행 상황
+
+## 현재 Phase
+
+| Phase | 주제 | 상태 |
+|-------|------|------|
+| Phase 1 | State Pattern 기초 (FSM 설계) | 완료 |
+| Phase 2 | 적 NPC AI (Enemy Agent) | 미시작 |
+| Phase 3 | 보스 몬스터 AI (Hierarchical FSM) | 미시작 |
+| Phase 4 | ML-Agents 기초 | 미시작 |
+| Phase 5 | 하이브리드 에이전트 | 미시작 |
+
+---
+
+## Phase 1: State Pattern 기초
+
+**상태:** 완료
+
+**완료 항목:**
+- [x] IState 인터페이스 작성 (`Scripts/StateMachine/IState.cs`)
+- [x] StateMachine 클래스 작성 (`Scripts/StateMachine/StateMachine.cs`)
+- [x] 색깔 전환 테스트 동작 확인 (TestAgent + IdleState + ActiveState)
+- [x] 동작 확인 씬 생성 (Scene: `Phase1_FSMBasics`)
+
+**메모:**
+- StateMachine은 순수 C# 클래스로 구현 (MonoBehaviour 아님)
+- TestAgent가 StateMachine을 소유하고 Tick() 호출
+- 각 State는 생성자에서 StateMachine과 Renderer를 받음
+
+---
+
+## Phase 2: 적 NPC AI
+
+**상태:** 미시작
+
+**완료 항목:**
+- [ ] NavMeshAgent 베이크 및 기본 이동 확인
+- [ ] `Scripts/Enemy/EnemyAgent.cs` 작성
+- [ ] IdleState 구현
+- [ ] PatrolState 구현
+- [ ] ChaseState 구현
+- [ ] AttackState 구현
+- [ ] DeadState 구현
+- [ ] 상태 전환 로직 연결
+- [ ] 씬에서 동작 확인 (Scene: `Phase2_EnemyAI`)
+
+**메모:**
+_없음_
+
+---
+
+## Phase 3: 보스 몬스터 AI
+
+**상태:** 미시작
+
+**완료 항목:**
+- [ ] `Scripts/Boss/BossAgent.cs` 작성
+- [ ] Phase1State 구현
+- [ ] Phase2State 구현
+- [ ] Phase3State 구현
+- [ ] 하위 FSM (Action 상태들) 구현
+- [ ] 체력 임계값 전환 확인
+- [ ] 씬에서 동작 확인 (Scene: `Phase3_BossAI`)
+
+**메모:**
+_없음_
+
+---
+
+## Phase 4: ML-Agents 기초
+
+**상태:** 미시작
+
+**완료 항목:**
+- [ ] ML-Agents 패키지 확인 (설치됨: 4.0.2)
+- [ ] `Scripts/MLAgents/SimpleAgent.cs` 작성
+- [ ] Observation 설계
+- [ ] Action 설계
+- [ ] Reward 설계
+- [ ] Heuristic 모드 테스트
+- [ ] 학습 config yaml 작성
+- [ ] 학습 실행 및 결과 확인
+
+**메모:**
+_없음_
+
+---
+
+## Phase 5: 하이브리드 에이전트
+
+**상태:** 미시작
+
+**완료 항목:**
+- [ ] `Scripts/Hybrid/HybridAgent.cs` 작성
+- [ ] ExploreState 구현 (ML-Agents 정책 연동)
+- [ ] CombatState 구현 (ML-Agents 정책 연동)
+- [ ] RetreatState 구현 (룰 기반)
+- [ ] 멀티 에이전트 씬 구성
+- [ ] Enemy vs Hybrid 대결 씬 동작 확인
+
+**메모:**
+_없음_
+
+---
+
+## 생성된 파일 트리
+
+```
+Assets/
+└── Scripts/
+    ├── StateMachine/       ← Phase 1
+    │   ├── IState.cs
+    │   └── StateMachine.cs
+    ├── Enemy/              ← Phase 2
+    │   ├── EnemyAgent.cs
+    │   └── States/
+    │       ├── IdleState.cs
+    │       ├── PatrolState.cs
+    │       ├── ChaseState.cs
+    │       ├── AttackState.cs
+    │       └── DeadState.cs
+    ├── Boss/               ← Phase 3
+    │   ├── BossAgent.cs
+    │   ├── Phases/
+    │   │   ├── Phase1State.cs
+    │   │   ├── Phase2State.cs
+    │   │   └── Phase3State.cs
+    │   └── Actions/
+    │       ├── AttackAction.cs
+    │       ├── SpecialAttackAction.cs
+    │       └── StaggerAction.cs
+    ├── MLAgents/           ← Phase 4
+    │   └── SimpleAgent.cs
+    └── Hybrid/             ← Phase 5
+        ├── HybridAgent.cs
+        └── States/
+            ├── ExploreState.cs
+            ├── CombatState.cs
+            └── RetreatState.cs
+```
