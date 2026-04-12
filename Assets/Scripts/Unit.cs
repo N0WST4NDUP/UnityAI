@@ -4,13 +4,13 @@ public class Unit : MonoBehaviour
 {
     private static string s_MoveSpeedParam = "MoveSpeed";
 
-    [SerializeField][Range(2f, 10f)] private float _maxSpeed = 2f;
+    [SerializeField][Range(2f, 10f)] private float _maxSpeed = 5f;
     private float _moveSpeed;
 
     private Rigidbody _unitRigidBody;
     private Animator _unitAnimator;
 
-    private Vector3 _target;
+    private Transform _target = null;
     private float _sqrDetectionRange = 0.01f;
     private float _currentMoveSpeed = 0f;
 
@@ -23,12 +23,13 @@ public class Unit : MonoBehaviour
 
     private void Start()
     {
-        _moveSpeed = Random.Range(1f, _maxSpeed);
+        _moveSpeed = Random.Range(_maxSpeed / 2f, _maxSpeed);
     }
 
     private void FixedUpdate()
     {
-        Vector3 direction = _target - transform.position;
+        if (_target == null) return;
+        Vector3 direction = _target.position - transform.position;
         direction.y = 0f;
 
         if (direction.sqrMagnitude > _sqrDetectionRange)
@@ -55,9 +56,22 @@ public class Unit : MonoBehaviour
     }
     #endregion
 
+    #region Getters
+    public float MoveSpeed => _moveSpeed;
+    #endregion
+
     #region Setters
-    public void SetTarget(Vector3 t) => _target = t;
-    public void SetTarget(Transform t) => SetTarget(t.position);
-    public void SetTarget(GameObject t) => SetTarget(t.transform);
+    public void SetTarget(Transform t) => _target = t;
+    public void SetTarget(GameObject t) => _target = t.transform;
+    #endregion
+
+    #region Reset
+    public void ResetPhysics()
+    {
+        _target = null;
+        _currentMoveSpeed = 0f;
+        _unitRigidBody.linearVelocity  = Vector3.zero;
+        _unitRigidBody.angularVelocity = Vector3.zero;
+    }
     #endregion
 }
