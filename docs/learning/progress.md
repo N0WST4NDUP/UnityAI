@@ -1,6 +1,6 @@
 ---
 title: 학습 진행 상황
-last_updated: 2026-04-12
+last_updated: 2026-04-14
 ---
 
 # 학습 진행 상황
@@ -36,21 +36,25 @@ last_updated: 2026-04-12
 
 ## Phase 2: 적 NPC AI
 
-**상태:** 미시작
+**상태:** 진행 중
 
 **완료 항목:**
-- [ ] NavMeshAgent 베이크 및 기본 이동 확인
-- [ ] `Scripts/Enemy/EnemyAgent.cs` 작성
-- [ ] IdleState 구현
-- [ ] PatrolState 구현
-- [ ] ChaseState 구현
-- [ ] AttackState 구현
-- [ ] DeadState 구현
-- [ ] 상태 전환 로직 연결
+- [x] NavMeshAgent 베이크 및 기본 이동 확인 (NavMeshSurface 컴포넌트 방식)
+- [x] `Scripts/Enemy/EnemyAgent.cs` 작성
+- [x] EnemyIdleState 구현 (`Scripts/Enemy/States/EnemyIdleState.cs`)
+- [ ] EnemyPatrolState 구현
+- [ ] EnemyChaseState 구현
+- [ ] EnemyAttackState 구현
+- [ ] EnemyDeadState 구현
+- [ ] 상태 전환 로직 연결 (TODO 주석 → 실제 코드)
 - [ ] 씬에서 동작 확인 (Scene: `Phase2_EnemyAI`)
 
 **메모:**
-_없음_
+- Unity 6에서 NavMesh 베이크는 NavMeshSurface 컴포넌트로 처리 (Bake 탭 없음)
+- 상태 클래스명 컨벤션: `Enemy` 접두사 사용 (예: EnemyIdleState)
+- EnemyAgent를 생성자에 통째로 넘기는 방식 채택 (프로퍼티로 필요한 값 노출)
+- 웨이포인트 접근: `GetWayPoint(int index)` + `WayPointsLength` 메서드/프로퍼티 방식
+- TakeDamage에 `#if UNITY_EDITOR` 조건부 컴파일로 LogWarning 처리
 
 ---
 
@@ -119,11 +123,11 @@ Assets/
     ├── Enemy/              ← Phase 2
     │   ├── EnemyAgent.cs
     │   └── States/
-    │       ├── IdleState.cs
-    │       ├── PatrolState.cs
-    │       ├── ChaseState.cs
-    │       ├── AttackState.cs
-    │       └── DeadState.cs
+    │       ├── EnemyIdleState.cs   ✅ 완료
+    │       ├── EnemyPatrolState.cs
+    │       ├── EnemyChaseState.cs
+    │       ├── EnemyAttackState.cs
+    │       └── EnemyDeadState.cs
     ├── Boss/               ← Phase 3
     │   ├── BossAgent.cs
     │   ├── Phases/

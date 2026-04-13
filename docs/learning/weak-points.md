@@ -43,7 +43,7 @@ last_updated: 2026-04-12
 
 ## Phase 2: 적 NPC AI
 
-_아직 학습 시작 전 - 기록 없음_
+_이번 세션에서 막힌 개념 없음 — 질문들이 모두 능동적 심화 탐구였음 (인덱서 vs 메서드, public vs SerializeField, Awake vs Start 등)_
 
 ---
 

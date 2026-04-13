@@ -33,6 +33,37 @@ last_updated: 2026-04-12
 
 ---
 
+## Session 2026-04-14 (3회차)
+
+**시작 Phase/단계:** Phase 2 — NavMesh 개념 설명
+
+**종료 Phase/단계:** Phase 2 — EnemyIdleState 완성
+
+**진행 내용:**
+- NavMesh 개념 이해: 걸을 수 있는 표면을 미리 구워두는 방식
+- Unity 6의 NavMesh 베이크 방식: NavMeshSurface 컴포넌트 (Bake 탭 없음)
+- NavMeshObstacle + Carve 개념 (파괴 가능한 오브젝트 처리)
+- Phase2_EnemyAI 씬 생성 및 NavMesh 베이크 완료 (Plane + Enemy Capsule + Player Sphere)
+- 적 NPC 상태 5개 설계: Idle, Patrol, Chase, Attack, Dead
+- 상태 전환 조건 전부 설계
+- Awake vs Start 차이 이해 (자기 초기화 vs 타 오브젝트 의존 초기화)
+- EnemyAgent.cs 완성: 필드, 프로퍼티, Awake, Update, TakeDamage
+- EnemyIdleState.cs 완성: OnEnter(정지+타이머), OnUpdate(감지/타이머), OnExit(빈)
+
+**결정 사항:**
+- 상태 클래스 이름에 Enemy 접두사 붙이기 (EnemyIdleState 등)
+- EnemyAgent를 생성자에 통째로 넘기는 방식 (프로퍼티로 노출)
+- 웨이포인트: 배열 전체 대신 `GetWayPoint(int)` + `WayPointsLength` 메서드 방식
+- TakeDamage: `if (damage <= 0) return` + `#if UNITY_EDITOR` LogWarning
+
+**다음 세션 시작점:**
+> EnemyPatrolState.cs 작성부터 시작. OnEnter/OnUpdate/OnExit 설계 질문으로 시작할 것. PatrolState는 웨이포인트 인덱스를 자체 관리하고, NavMeshAgent.SetDestination으로 이동, 도착 판정은 remainingDistance로 처리.
+
+**특이사항:**
+- 힌트가 너무 크다는 피드백 받음 → 다음 세션부터 힌트 최소화
+
+---
+
 ## Session 2026-04-12 (2회차)
 
 **시작 Phase/단계:** Phase 1 — IState 인터페이스 설계

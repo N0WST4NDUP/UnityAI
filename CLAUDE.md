@@ -61,7 +61,7 @@ docs/learning/
 
 ## 현재 학습 위치
 
-> **Phase 1 완료** — 다음 세션은 Phase 2 (적 NPC AI) 시작
+> **Phase 2 진행 중** — EnemyAgent.cs + EnemyIdleState.cs 완성. 다음 세션은 EnemyPatrolState.cs 작성부터
 
 상세 진행 상황: [progress.md](docs/learning/progress.md)
 
