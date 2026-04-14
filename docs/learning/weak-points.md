@@ -43,7 +43,26 @@ last_updated: 2026-04-12
 
 ## Phase 2: 적 NPC AI
 
-_이번 세션에서 막힌 개념 없음 — 질문들이 모두 능동적 심화 탐구였음 (인덱서 vs 메서드, public vs SerializeField, Awake vs Start 등)_
+### [Phase 2] 후위 증가 연산자 혼동
+- **발견일:** 2026-04-15
+- **상황:** `NextWaypoint()`에서 `_patrolIndex = _patrolIndex++ % _waypoints.Length` 작성
+- **증상:** `++`를 다른 연산과 섞어 쓰면 후위 증가라 반환 후 증가가 일어나 원래 값으로 덮어써짐
+- **보완 설명:** `_patrolIndex = (_patrolIndex + 1) % _waypoints.Length`처럼 명시적으로 +1. `++`는 단독으로만 사용
+- **상태:** 해결
+
+### [Phase 2] remainingDistance vs Vector3.Distance
+- **발견일:** 2026-04-15
+- **상황:** ChaseState에서 감지 범위 이탈 판정에 `remainingDistance` 사용
+- **증상:** `remainingDistance`는 NavMesh 경로 거리(우회 포함), 감지는 시야 개념이라 직선 거리가 맞음
+- **보완 설명:** 이동 도착 판정 → `remainingDistance`, 감지/공격 범위 판정 → `Vector3.Distance`
+- **상태:** 해결
+
+### [Phase 2] pathPending 미고려
+- **발견일:** 2026-04-15
+- **상황:** PatrolState에서 `SetDestination` 직후 `remainingDistance` 체크
+- **증상:** 경로 계산 중(`pathPending=true`)일 때 `remainingDistance`가 0을 반환해 즉시 도착 판정 발생 가능
+- **보완 설명:** `!_enemy.Agent.pathPending &&` 조건 추가로 경로 계산 완료 후에만 체크
+- **상태:** 해결
 
 ---
 
