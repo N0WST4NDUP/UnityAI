@@ -61,7 +61,7 @@ docs/learning/
 
 ## 현재 학습 위치
 
-> **Phase 2 진행 중** — EnemyAgent.cs + EnemyIdleState.cs 완성. 다음 세션은 EnemyPatrolState.cs 작성부터
+> **Phase 2 완료** — 다음 세션은 Phase 3 (보스 몬스터 AI — Hierarchical FSM) 시작. 개념 설명부터.
 
 상세 진행 상황: [progress.md](docs/learning/progress.md)
 

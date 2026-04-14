@@ -33,6 +33,35 @@ last_updated: 2026-04-12
 
 ---
 
+## Session 2026-04-15 (4회차)
+
+**시작 Phase/단계:** Phase 2 — EnemyPatrolState 작성
+
+**종료 Phase/단계:** Phase 2 완료 — 전체 동작 확인
+
+**진행 내용:**
+- EnemyPatrolState: pathPending 체크, early return 패턴, SetDestination 위치 최적화
+- EnemyChaseState: Vector3.Distance vs remainingDistance 차이 이해, if/else if 패턴
+- EnemyAttackState: 공격 쿨다운 타이머, 플레이어 방향 회전(LookRotation)
+- EnemyDeadState: 오브젝트 풀링 설계, enabled=false vs Destroy 차이
+- 모든 TODO 주석을 실제 코드로 교체
+- 상태별 색깔 시각화 추가 (Idle=파랑, Patrol=초록, Chase=노랑, Attack=빨강, Dead=회색)
+- MCP로 씬 세팅 자동화 (Player, Renderer, Waypoints 연결, 수치 설정)
+- Play Mode에서 전체 동작 확인 완료
+
+**결정 사항:**
+- 웨이포인트 도착 후 바로 다음 순찰이 아닌 Idle 경유 방식으로 변경 (자연스러운 대기)
+- 오브젝트 풀링: OnEnable에서 HP 리셋 + Idle 복귀
+- 공격 쿨다운 타이머는 AttackState 내부 관리
+
+**다음 세션 시작점:**
+> Phase 2 완료. Phase 3 (보스 몬스터 AI — Hierarchical FSM) 시작. 개념 설명부터: 일반 FSM과 계층형 FSM의 차이, 보스 페이즈 전환 구조 설계.
+
+**특이사항:**
+- Unity MCP 연결이 끊겼다가 재승인 후 복구됨
+
+---
+
 ## Session 2026-04-14 (3회차)
 
 **시작 Phase/단계:** Phase 2 — NavMesh 개념 설명

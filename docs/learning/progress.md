@@ -1,6 +1,6 @@
 ---
 title: 학습 진행 상황
-last_updated: 2026-04-14
+last_updated: 2026-04-15
 ---
 
 # 학습 진행 상황
@@ -10,7 +10,7 @@ last_updated: 2026-04-14
 | Phase | 주제 | 상태 |
 |-------|------|------|
 | Phase 1 | State Pattern 기초 (FSM 설계) | 완료 |
-| Phase 2 | 적 NPC AI (Enemy Agent) | 미시작 |
+| Phase 2 | 적 NPC AI (Enemy Agent) | 완료 |
 | Phase 3 | 보스 몬스터 AI (Hierarchical FSM) | 미시작 |
 | Phase 4 | ML-Agents 기초 | 미시작 |
 | Phase 5 | 하이브리드 에이전트 | 미시작 |
@@ -36,24 +36,28 @@ last_updated: 2026-04-14
 
 ## Phase 2: 적 NPC AI
 
-**상태:** 진행 중
+**상태:** 완료
 
 **완료 항목:**
 - [x] NavMeshAgent 베이크 및 기본 이동 확인 (NavMeshSurface 컴포넌트 방식)
 - [x] `Scripts/Enemy/EnemyAgent.cs` 작성
-- [x] EnemyIdleState 구현 (`Scripts/Enemy/States/EnemyIdleState.cs`)
-- [ ] EnemyPatrolState 구현
-- [ ] EnemyChaseState 구현
-- [ ] EnemyAttackState 구현
-- [ ] EnemyDeadState 구현
-- [ ] 상태 전환 로직 연결 (TODO 주석 → 실제 코드)
-- [ ] 씬에서 동작 확인 (Scene: `Phase2_EnemyAI`)
+- [x] EnemyIdleState 구현
+- [x] EnemyPatrolState 구현
+- [x] EnemyChaseState 구현
+- [x] EnemyAttackState 구현
+- [x] EnemyDeadState 구현
+- [x] 상태 전환 로직 연결
+- [x] 씬에서 동작 확인 (Scene: `Phase2_EnemyAI`)
 
 **메모:**
 - Unity 6에서 NavMesh 베이크는 NavMeshSurface 컴포넌트로 처리 (Bake 탭 없음)
 - 상태 클래스명 컨벤션: `Enemy` 접두사 사용 (예: EnemyIdleState)
 - EnemyAgent를 생성자에 통째로 넘기는 방식 채택 (프로퍼티로 필요한 값 노출)
-- 웨이포인트 접근: `GetWayPoint(int index)` + `WayPointsLength` 메서드/프로퍼티 방식
+- 웨이포인트 인덱스는 EnemyAgent가 관리, `CurrentWaypoint` 프로퍼티 + `NextWaypoint()` 메서드
+- 웨이포인트 도착 후 Idle을 거쳐 다음 순찰 (자연스러운 대기 효과)
+- 오브젝트 풀링 구조: `OnEnable()`에서 HP 리셋 + Idle 상태 복귀
+- 상태별 색깔: Idle=파랑, Patrol=초록, Chase=노랑, Attack=빨강, Dead=회색
+- `pathPending` 체크로 첫 프레임 도착 오판 방지
 - TakeDamage에 `#if UNITY_EDITOR` 조건부 컴파일로 LogWarning 처리
 
 ---

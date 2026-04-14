@@ -13,6 +13,7 @@ public class EnemyIdleState : IState
     public void OnEnter()
     {
         _enemy.Agent.isStopped = true;
+        _enemy.Renderer.material.color = Color.blue;
         _timer = 0f;
     }
 
@@ -22,14 +23,14 @@ public class EnemyIdleState : IState
     {
         if (Vector3.Distance(_enemy.transform.position, _enemy.Target.position) < _enemy.DetectionRange)
         {
-            // TODO: _enemy.StateMachine.ChangeState(new ChaseState);
+            _enemy.StateMachine.ChangeState(new EnemyChaseState(_enemy));
         }
         else
         {
             _timer += Time.deltaTime;
             if (_timer >= _enemy.IdleTime)
             {
-                // TODO: _enemy.StateMachine.ChangeState(new PatrolState);
+                _enemy.StateMachine.ChangeState(new EnemyPatrolState(_enemy));
             }
         }
     }
