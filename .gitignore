@@ -134,7 +134,6 @@ lightning_logs/
 ####################
 # AI 도구
 ####################
-# Claude Code
 # [Cc][Ll][Aa][Uu][Dd][Ee].md
 .claude/
 
