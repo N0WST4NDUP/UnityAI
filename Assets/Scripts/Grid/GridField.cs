@@ -24,6 +24,7 @@ namespace UnityAI.Grid
         }
 
         // --- Cell State API ---
+        public CellState GetCellState(Vector2Int cell) => GetCellState(cell.x, cell.y);
         public CellState GetCellState(int x, int y)
         {
             if (x < 0 || x >= _width || y < 0 || y >= _height)
@@ -32,6 +33,7 @@ namespace UnityAI.Grid
             return _cells[x, y];
         }
 
+        public void SetCellState(Vector2Int cell, CellState state) => SetCellState(cell.x, cell.y, state);
         public void SetCellState(int x, int y, CellState state)
         {
             if (x < 0 || x >= _width || y < 0 || y >= _height)

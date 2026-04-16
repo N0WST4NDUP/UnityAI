@@ -65,6 +65,58 @@
 - [ ] `GridField.transform.position` 을 좌표 변환에 반영할지 결정 (현재는 world 원점 고정). Phase 3 전에 논의 필요.
 - [ ] 기존 `TrainManager.cs` 와 Phase 1 씬 연동 여부 (Phase 2 시점에 재검토)
 
+---
+
+## 2026-04-16 — TASK-102 구조물 배치 로직
+
+### 목표
+- Phase 1 두 번째 Task인 TASK-102 완료
+- Structure / StructurePlacer / StructureDamageTester 3개 스크립트 작성
+
+### 완료
+- [x] `Assets/Scripts/Structures/Structure.cs` — MonoBehaviour
+  - `_maxDurability` / `_currDurability` (int, Inspector + Runtime)
+  - `Init(GridField, Vector2Int)` — Instantiate 후 런타임 초기화 패턴
+  - `TakeDamage(int)` — 캡슐화된 데미지 API, 음수 방어 포함
+  - `private Die()` — 셀 상태 Empty 복귀 + Destroy
+- [x] `Assets/Scripts/Structures/StructurePlacer.cs` — MonoBehaviour
+  - Raycast → WorldToGrid → GetCellState 검증 → Instantiate 파이프라인
+  - `_isPreparationPhase` bool로 준비 페이즈 게이팅
+  - Guard clause 패턴 적용
+- [x] `Assets/Scripts/Structures/StructureDamageTester.cs` — 우클릭 데미지 테스트용
+- [x] GridField에 `Vector2Int` 오버로드 추가 (사용자 자발적 리팩터링)
+- [x] Grid_Sandbox 씬에 Ground Plane + StructurePlacer + Structure Prefab 설정
+- [x] TASK-102 완료 조건 4종 검증: 준비페이즈 한정 배치 / 중복 배치 방지 / 파괴 시 셀 복귀 / 파괴 후 재생성
+
+### 학습 포인트 (사용자)
+- MonoBehaviour Init() 패턴: 생성자 대신 public Init()로 런타임 값 주입
+- 캡슐화와 불변 규칙: TakeDamage()가 유일한 HP 변경 통로 → Die() 규칙 보장
+- `private Die()` vs `public Die()`: 내부 로직은 private으로 → 외부에서 규칙 우회 방지
+- Raycast에 물리 Collider 필수라는 점
+- Camera.main 필드 초기화 불가 → Awake()에서 캐싱
+- Instantiate 반환값 vs 프리팹 원본 구분
+- YAGNI 원칙: IDamageable은 실제 중복 발생 시(TASK-104) 추출
+- int vs float HP: 이산적 내구도에는 int가 부동소수점 오차 없이 안전
+- TryGetComponent와 null safety
+
+### Weak Points (다음 세션 복습 권장)
+
+1. **Camera.main 필드 초기화**
+   - `private Camera _camera = Camera.main;`으로 작성 → Awake로 수정
+   - 복습 질문: "왜 필드 초기화 시점에 Camera.main이 null인가?"
+
+2. **Instantiate 반환값**
+   - 프리팹 원본에 Init()을 호출하는 실수 발생 → 반환값에 호출로 수정
+   - 복습 질문: "Instantiate(prefab)과 prefab은 같은 오브젝트인가?"
+
+3. **TryGetComponent null safety**
+   - TryGetComponent 결과를 체크하지 않고 바로 사용 → NullReferenceException 가능
+   - 복습 질문: "바닥을 우클릭하면 왜 에러가 나는가?"
+
+### 미완료 / 다음 세션
+- [ ] TASK-103 유닛 Grid 이동 구현 — Unit, UnitMover 스크립트 신규 작성
+- [ ] StructureDamageTester의 TryGetComponent guard clause 수정
+
 ### Weak Points (다음 세션 복습 권장)
 
 이번 세션에서 사용자가 처음 마주했거나 놓쳤던 포인트. 다음 세션 시작 시 가볍게 복습하면 좋다.
