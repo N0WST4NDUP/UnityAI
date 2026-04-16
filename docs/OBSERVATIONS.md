@@ -1,116 +1,74 @@
 # OBSERVATIONS.md
 
-Commander / Unit Agent별 VectorSensor 인덱스 맵 + GridSensor 채널 설정.
+Agent별 Observation Space 설계. Phase 2~3에서 구체화 및 실험 후 확정.
 
 ---
 
-## UnitAgent (공통 베이스)
+## Unit Agent (Phase 2에서 확정)
 
-### VectorSensor (고정 크기)
+### 설계 방향
 
-| Index | 이름 | 크기 | 범위 | 설명 |
-|-------|------|------|------|------|
-| 0 | self_hp_norm | 1 | [0,1] | 현재 HP / 최대 HP |
-| 1 | self_pos_x | 1 | [0,1] | Grid X / W |
-| 2 | self_pos_y | 1 | [0,1] | Grid Y / H |
-| 3 | role_flag | 3 | one-hot | 탱커/딜러/마법사 |
-| 6 | team_flag | 1 | {0,1} | 0=아군 / 1=적군 관점(self-play) |
-| 7 | attacker_flag | 1 | {0,1} | 이번 라운드 공성 측 |
-| 8 | defender_flag | 1 | {0,1} | 수성 측 |
-| 9 | synergy_offensive | 1 | {0,1} | 공격적 시너지 |
-| 10 | synergy_defensive | 1 | {0,1} | 수비적 시너지 |
-| 11 | cmd_assault | 1 | {0,1} | Commander 명령: 총공세 |
-| 12 | cmd_retreat | 1 | {0,1} | 후퇴 |
-| 13 | cmd_reposition | 2 | [-1,1]² | 포지션 조정 (dx,dy) |
-| 15 | cmd_target_focus | 1 | [0,1] | 타겟 포커싱 우선도 |
-| 16 | cooldowns | 3 | [0,1] | 스킬별 쿨다운 |
-| 19 | nearest_ally_dist | 1 | [0,1] | 최근접 아군 거리 |
-| 20 | nearest_enemy_dist | 1 | [0,1] | 최근접 적 거리 |
+NavMesh 기반 자유 이동이므로 Grid 셀 인덱스가 아닌 **연속 좌표 기반 관측**.
 
-합계: **21 floats** (직군별 서브클래스가 확장 가능)
+### VectorSensor (초안)
 
-### GridSensor (주변 n×n, 자기 중심)
+| 인덱스 범위 | 내용 | 비고 |
+|-------------|------|------|
+| 0-2 | 자기 위치 (x, y, z) | 정규화 필요 |
+| 3 | 자기 HP (정규화) | current / max |
+| 4 | 직군 (one-hot 또는 정수) | 탱커/딜러/마법사 |
+| 5 | 팀 ID | 0 또는 1 |
+| 6-7 | 가장 가까운 적 상대 위치 (dx, dz) | 자기 기준 상대 좌표 |
+| 8 | 가장 가까운 적 HP | 정규화 |
+| 9-10 | 가장 가까운 구조물 상대 위치 | 부수기/우회 판단용 |
+| 11 | 구조물 내구도 | 정규화 |
+| 12-13 | Commander 명령 flag | Phase 3에서 채움, Phase 2에서는 0 패딩 |
+| 14-15 | 시너지 flag | Phase 2 TASK-204에서 연결 |
+| ... | 추가 유닛 정보 (최대 N개) | 패딩 방식 |
 
-| 채널 | 의미 |
-|------|------|
-| 0 | 빈 공간 (1=empty) |
-| 1 | 구조물 |
-| 2 | 아군 유닛 점유 |
-| 3 | 적군 유닛 점유 |
-| 4 | 위험 셀 (포탄 예고) |
-| 5 | 위험 셀 잔여 틱 / max_tick |
+> 정확한 인덱스와 크기는 Phase 2 실험 후 확정. 위는 설계 방향 참고용.
 
-크기: **7×7 (자기 중심), 6채널**
+### RaySensor (초안)
+
+| 설정 | 값 (초안) | 비고 |
+|------|-----------|------|
+| Ray 개수 | 12~16 | 부채꼴 |
+| 감지 각도 | 360도 또는 전방 180도 | 실험 후 결정 |
+| 최대 거리 | 맵 크기 기준 조정 | |
+| 감지 태그 | Enemy, Ally, Structure, Barricade | |
 
 ---
 
-## TankAgent / DealerAgent / MageAgent 확장
+## Commander Agent (Phase 3에서 확정)
 
-### TankAgent 추가 VectorSensor
-| 이름 | 설명 |
-|------|------|
-| current_aggro | 어그로 누적량 / max |
+### 비교 실험 대상
 
-### DealerAgent 추가 VectorSensor
-| 이름 | 설명 |
-|------|------|
-| target_priority_vec | 가장 위협적인 적 3명의 상대 좌표 + HP |
+**방안 A: VectorSensor**
+- 모든 유닛(16~20)의 위치/HP/상태를 벡터로 직접 입력
+- 장점: 구현 단순, 정확한 정보
+- 단점: 공간 관계 학습이 어려울 수 있음
 
-### MageAgent 추가 VectorSensor
-| 이름 | 설명 |
-|------|------|
-| best_aoe_center | 최적 AoE 중심 후보 (dx,dy) |
-| aoe_cluster_size | 후보 범위 내 적 수 |
+**방안 B: GridSensor 오버레이**
+- 전장을 NxN Grid로 나누고, 유닛 연속 좌표를 해당 셀에 투영
+- 채널: 아군 수 / 적군 수 / 구조물 유무 / HP 합계 등
+- 장점: 공간 인식에 유리 (CNN 활용 가능)
+- 단점: 해상도와 정확도 트레이드오프
 
----
+> Phase 3 TASK-301에서 두 방식 모두 구현 + 학습 비교 후 확정.
 
-## CommanderAgent
+### 공통 VectorSensor (역할 정보)
 
-### GridSensor (전장 전체)
-
-| 설정 | 값 |
-|------|----|
-| Grid 크기 | 16 × 16 (필드 크기와 동일) |
-| Cell Scale | 1 |
-| 채널 수 | 7 |
-
-| 채널 | 의미 |
-|------|------|
-| 0 | 아군 유닛 존재 |
-| 1 | 아군 유닛 HP 비율 |
-| 2 | 적군 유닛 존재 |
-| 3 | 적군 유닛 HP 비율 |
-| 4 | 구조물 (내구도 정규화) |
-| 5 | 위험 셀 존재 |
-| 6 | 위험 셀 잔여 틱 / max |
-
-### VectorSensor
-
-| Index | 이름 | 크기 | 설명 |
-|-------|------|------|------|
-| 0 | attacker_flag | 1 | 공성 측 여부 |
-| 1 | defender_flag | 1 | 수성 측 여부 |
-| 2 | synergy_vec | 4 | 현재 시너지 one-hot (확장 여지) |
-| 6 | alive_count_ally | 1 | 아군 생존 수 / max |
-| 7 | alive_count_enemy | 1 | 적군 생존 수 / max |
-| 8 | round_progress | 1 | 라운드 경과 시간 비율 |
-| 9 | enemy_pattern_history | 8 | 직전 라운드 행동 경향 임베딩 |
-
-합계: **17 floats**
-
-### Action Space (Commander)
-
-| Branch | 크기 | 의미 |
-|--------|------|------|
-| 0 | 3 | 전면 전략 (총공세 / 유지 / 후퇴) |
-| 1 | N_units+1 | 포커싱 타겟 유닛 인덱스 (없음 포함) |
-| 2 | 4 | 포지션 조정 방향 (N/S/E/W/none) |
-
-Multi-discrete 복합 명령 → CommandBus가 분기.
+| 인덱스 | 내용 |
+|--------|------|
+| 0 | 공성/수성 역할 flag (0 또는 1) |
+| 1 | 라운드 번호 (정규화) |
+| 2 | 아군 남은 유닛 수 (정규화) |
+| 3 | 적 남은 유닛 수 (정규화) |
 
 ---
 
-## 주의사항
-- **Unit VectorSensor에 Commander 명령 slot이 포함되어 있으므로 Phase 2에선 zero로 고정 후 Phase 3 연결 시 활성화.** 크기 자체는 Phase 2부터 확보해 둔다 (재학습 방지).
-- GridSensor 채널 수는 Phase 4 위험 셀 추가 시 이미 반영되어 있다.
-- 유닛 수 상한 `N_units`는 한 팀 최대 8 기준 (`2팀=16`). 변경 시 Commander action branch 크기 재설정.
+## 변경 이력
+
+| 날짜 | 변경 내용 |
+|------|-----------|
+| 2026-04-16 | 재설계: Grid 셀 기반 → 연속 좌표 기반으로 전환. GridSensor는 Commander 오버레이 후보로만 유지. |

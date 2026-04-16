@@ -114,8 +114,58 @@
    - 복습 질문: "바닥을 우클릭하면 왜 에러가 나는가?"
 
 ### 미완료 / 다음 세션
-- [ ] TASK-103 유닛 Grid 이동 구현 — Unit, UnitMover 스크립트 신규 작성
+- [ ] ~~TASK-103 유닛 Grid 이동 구현~~ → 재설계로 폐기, TASK-107 (NavMesh 이동)으로 대체
 - [ ] StructureDamageTester의 TryGetComponent guard clause 수정
+
+---
+
+## 2026-04-16 (계속) — 프로젝트 재설계
+
+### 목표
+- 게임 비전 재정의: Grid 셀 이동 → NavMesh 자유 이동 (미니어처 워게임 컨셉)
+- CLAUDE.md 마스터 문서 + 전체 파생 문서 재작성
+
+### 배경
+- 사용자의 원래 비전: 준비 페이즈에서 Grid 보드에 미니어처 배치 → 전투 시작 시 미니어처가 살아서 자유롭게 싸우는 소규모 전쟁 시뮬레이션
+- 기존 설계(Grid 셀 단위 이동)는 이 비전과 맞지 않음
+- NavMesh 기반 자유 이동으로 전면 재설계
+
+### 핵심 설계 변경
+
+| 항목 | 기존 | 변경 |
+|------|------|------|
+| 전투 이동 | Grid A*/BFS (셀 단위) | NavMesh + NavMeshAgent (자유 이동) |
+| 구조물 | Grid 셀 상태만 | NavMeshObstacle(Carve) + Collider + 내구도 |
+| 전투 중 Grid | 셀 점유 계속 갱신 | 사용 안 함 (준비 페이즈 전용) |
+| CellState | Empty/Structure/Occupied/Danger | Empty/Structure/Occupied (Danger 제거) |
+| 바리케이드 | Grid 셀에 설치 | 자유 좌표 + 방향 회전 + NavMeshObstacle |
+| 포탄 | Grid 위험 셀 + 틱 | 월드 좌표 AoE (MOBA/RTS 스타일) |
+| NavMesh Bake | 없음 | 전투 시작 시 1회 (NavMeshSurface.BuildNavMesh) |
+| 지형 편집 | 없음 | 준비 페이즈에서 수성 측 높낮이 조절 |
+| AI 관측 | GridSensor (셀=유닛) | VectorSensor + RaySensor (연속 좌표 기반) |
+| 벽 부수기/우회 | 해당 없음 (Grid 이동) | Agent가 학습으로 판단 |
+
+### 완료
+- [x] CLAUDE.md 마스터 문서 전면 재작성
+- [x] ARCHITECTURE.md 재작성 (디렉토리 구조, 클래스 책임, 듀얼 페이즈 전환 흐름)
+- [x] PHASE_1.md 재작성 (TASK-105~110, NavMesh 기반)
+- [x] PHASE_2.md 재작성 (VectorSensor+RaySensor, 구조물 부수기 학습)
+- [x] PHASE_3.md 재작성 (Commander 관측 비교 실험 명시)
+- [x] PHASE_4.md 재작성 (바리케이드/포탄 자유 좌표, 지형 편집, 구조물 확장)
+- [x] PHASE_5.md 재작성
+- [x] TASKS.md 재작성 (TASK 번호 체계 갱신)
+- [x] OBSERVATIONS.md 재작성 (연속 좌표 기반, 비교 실험 계획)
+- [x] REWARDS.md 업데이트 (구조물 관련 보상 추가)
+
+### 기존 코드 영향
+- `GridField.cs` / `GridCell.cs` — 유지 (준비 페이즈 전용으로 역할 축소, CellState.Danger 제거 필요)
+- `Structure.cs` — 유지 + NavMeshObstacle 연동 추가 필요
+- `StructurePlacer.cs` — 유지 (준비 페이즈 배치 로직은 그대로)
+- `StructureDamageTester.cs` — 유지 (테스트용)
+
+### 미완료 / 다음 작업
+- [ ] TASK-105: 기존 코드에 재설계 적용 (CellState.Danger 제거, Structure NavMeshObstacle 연동)
+- [ ] TASK-106~110: Phase 1 나머지 Task 순차 진행
 
 ### Weak Points (다음 세션 복습 권장)
 

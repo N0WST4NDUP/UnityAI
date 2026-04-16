@@ -1,40 +1,44 @@
 # Phase 3 — Commander Agent 연결
 
 ## 목표
-Commander Agent를 도입하여 Unit Agent 위에 Hierarchical RL 구조를 완성한다. 전장 전체를 GridSensor로 관측하고 복합 명령을 Unit에 내려보낸다.
+전장 전체를 관측하는 Commander Agent를 구현하고, Unit Agent에 전략 명령을 내리는 Hierarchical RL 구조를 완성한다.
 
 ## 선행 조건 (의존 Phase)
-- Phase 2 완료 (Unit Policy 수렴 확인)
+- Phase 2 완료 (Unit Agent 기본 전투 학습)
 
 ## 세부 Task 목록
 
-### TASK-301: Commander GridSensor 설계
+### TASK-301: Commander 관측 방식 비교 실험
 - 구현 위치: `Assets/Scripts/Agents/CommanderAgent.cs`
-- 입력: 전장 전체 Grid 상태 스냅샷
-- 출력: Commander 전용 GridSensor
+- 실험 내용:
+  - **방안 A**: VectorSensor — 모든 유닛 위치/상태/HP를 벡터로 직접 입력
+  - **방안 B**: GridSensor 오버레이 — 유닛의 연속 좌표를 Grid에 투영하여 공간 인식
 - 완료 조건:
-  - 유닛 수 변화에 관계없이 관측 크기 불변
-  - 구조물/위험 셀 채널 분리
+  - 두 방식 모두 구현 + 학습 실험
+  - 성능/학습 속도 비교 후 최종 방식 확정
+  - 결과를 OBSERVATIONS.md에 기록
 
-### TASK-302: 공성/수성 역할 플래그 VectorSensor
+### TASK-302: 공성/수성 역할 플래그 연결
+- 구현 위치: Commander + Unit observation
 - 완료 조건:
-  - `isAttacker`, `isDefender` flag가 VectorSensor에 추가
-  - 라운드 교대 시 flag 자동 반전
+  - 역할 플래그가 관측에 포함
+  - 역할별 전략 경향 학습 확인
 
 ### TASK-303: Commander → Unit 명령 파이프라인
 - 구현 위치: `Assets/Scripts/Agents/CommandBus.cs`
-- 명령 종류: 총공세 / 후퇴 / 포지션 조정 / 타겟 포커싱 (복합 가능)
+- 명령 종류: 총공세 / 후퇴 / 타겟 포커싱 / 포지션 조정
 - 완료 조건:
-  - Commander의 discrete action이 Unit observation에 브로드캐스트
-  - 복합 명령 (예: 후퇴 + 특정 타겟 포커싱) 동시 적용 가능
+  - Commander action → CommandBus → Unit Agent observation에 명령 flag 반영
+  - Unit Agent가 명령에 따라 행동 변화 확인
 
-### TASK-304: Hierarchical RL 학습 루프
+### TASK-304: Hierarchical RL 학습 루프 구성
+- 구현 위치: Python `mlagents` 설정 + Unity 학습 씬
 - 완료 조건:
-  - Commander와 Unit이 동시에 학습 (또는 교대 frozen)
-  - `config/ppo/commander_agent.yaml` 분리
-  - 학습 수렴 확인
+  - Commander + Unit 동시 학습 동작
+  - Commander 명령이 전투 결과에 유의미한 영향
+  - TensorBoard로 학습 곡선 확인
 
 ## 주의사항
-- Commander 명령이 Unit observation에 추가되면 TASK-201의 observation 크기가 바뀐다 → **재학습 필요**.
-- Commander 학습률은 Unit보다 낮게 설정 (상위 정책 안정성).
-- 공성/수성 플래그가 observation에 없으면 Commander가 역할 구분을 못 한다. 누락 주의.
+- Commander 관측 방식은 **반드시 비교 실험 후 확정**. 사전 가정으로 결정하지 않는다.
+- Commander action frequency는 Unit보다 낮을 수 있음 (N틱마다 1회). 실험으로 결정.
+- Hierarchical RL 보상 전파: Commander=게임 결과 기반, Unit=행동 기반. 타임스케일 차이에 유의.
