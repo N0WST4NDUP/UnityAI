@@ -198,3 +198,90 @@
 6. **개념 지연 설명이 혼란을 준 경우**
    - "스레드 안전성" 을 미리 언급해 혼란만 줌. 이번 Phase 에서 불필요한 개념이므로 머릿속에서 일단 삭제해도 OK.
    - 교훈: 어시스턴트가 맥락 없이 흘린 개념은 잡지 않아도 된다. 필요해질 때 다시 꺼내진다.
+
+---
+
+## 2026-04-17 — TASK-105 재설계 적용 + 구조물 라이프사이클 리팩터
+
+### 목표
+- `CellState.Danger` 제거 (재설계 반영: 전투 중 위험 영역은 월드 좌표 AoE 로)
+- `Structure` ↔ `NavMeshObstacle` 연동 (파괴 시 NavMesh Carve 자동 복구)
+- **(세션 중 발생한 설계 전환)** 라운드 복구를 고려한 구조물 라이프사이클 재설계
+
+### 완료
+- [x] `CellState` enum: `Danger` 제거 → Empty / Structure / Occupied 3종 확정
+- [x] `GridField.DrawCell`: `case CellState.Danger` 블록 제거
+- [x] `Structure.cs` 리팩터
+  - `[RequireComponent(typeof(NavMeshObstacle))]` 어트리뷰트 추가
+  - `using UnityEngine.AI;` 추가
+  - `_obstacle` 필드 + `Awake()` 에서 `GetComponent<NavMeshObstacle>()` 캐싱
+  - `Die()`: `Destroy(gameObject)` → `gameObject.SetActive(false)` 로 변경
+  - `Die()`: Grid 셀 상태 변경 코드 제거 (RoundManager 책임으로 이동)
+  - `_gridField` 필드 제거 + `Init(GridField, Vector2Int)` → `Init(Vector2Int)` 로 파라미터 축소
+- [x] `StructurePlacer.cs`: `Init(_grid, gridPos)` → `Init(gridPos)` 호출부 동기화
+- [x] Structure 프리팹: NavMeshObstacle 컴포넌트 설정 (Shape=Box, Size 맞춤, **Carve=ON**, Carve Only Stationary 기본값)
+- [x] TASK-105 완료 조건 검증: CellState 3종 / 파괴 시 GameObject 비활성 (Obstacle 효과 자동 해제 경로) / Grid 셀 상태 유지(복구 대비)
+
+### 설계 결정 (향후 영향 있는 판단)
+
+1. **파괴 처리: `Destroy` → `SetActive(false)` 전환**
+   - 이유: 라운드 종료 시 성벽 복구가 게임의 전략적 깊이 핵심 ("실패 → 약간의 수정" 루프). 오토체스+워게임 컨셉에서 구조물 연속성이 **선택 아닌 필수**라고 판단.
+   - 부가 효과: 풀링에 유리 (GC 압박 ↓)
+   - 다만 풀링 매니저 / Reset 메서드 등 인프라 구축은 **RoundManager 도입 시점**까지 연기 (YAGNI: 복구 타이밍/정책이 아직 미정)
+
+2. **책임 소재 이동: Grid 상태 관리 → Structure 에서 분리**
+   - `Structure.Die()` 는 "**보이지 않게 된다**" 까지만 담당. Grid 조작 책임 이관.
+   - 원칙: Grid 상태 = **준비 페이즈의 의도**. 전투 중 Die() 가 Empty 로 바꿔도 아무도 안 읽음 + 라운드 복구 시 RoundManager 가 다시 Structure 로 되돌리는 왕복 발생 → 제거.
+   - 플레이어가 복구를 포기한 경우의 Empty 전환은 **라운드 경계에서 RoundManager 가** 플레이어 선택에 기반해 수행.
+
+3. **NavMeshObstacle 참조 방식: `GetComponent` + `[RequireComponent]`**
+   - 관계 유형: **계약(Contract)** — Structure 는 NavMeshObstacle 없이 기능 불가
+   - 비교 대상: `GridField` 는 **설정(Configuration)** — 씬 안 여러 후보 중 디자이너 선택 → `[SerializeField]` + Inspector 드래그
+   - `[RequireComponent]` 는 컴포넌트 존재를 에디터 수준에서 강제 (실수로 제거 불가 + 자동 추가)
+
+### 학습 포인트 (사용자)
+
+- **NavMesh 파이프라인 전체 그림**
+  - NavMesh = "걸을 수 있는 바닥의 미리 구운 지도" (Bake 1회)
+  - NavMeshAgent = 그 위에서 목적지까지 자동 경로 탐색 + 재계산
+  - NavMeshObstacle = NavMesh 위 동적 장애물
+- **NavMeshObstacle 의 Carve 옵션 차이**
+  - Carve = OFF: 회피 동작만 영향. NavMesh 는 그대로 (싸지만 벽에는 부적합)
+  - Carve = ON: NavMesh 에 실제로 구멍 뚫음 + 비활성 시 자동 복구 (비싸지만 파괴형 구조물 필수)
+- **`GameObject.SetActive(bool)` vs `Component.enabled`**
+  - SetActive = GameObject + 자식 + 모든 컴포넌트 on/off (enabled 필드는 건드리지 않음)
+  - .enabled = 그 컴포넌트 하나만 on/off (플래그 자체 변경)
+  - 함정: 둘 다 쓰면 복구 시 `.enabled=false` 잔존 → Obstacle 이 살아나지 않음
+- **`[RequireComponent]` 어트리뷰트** — 동일 GameObject 필수 컴포넌트 명시. 자동 추가 + 제거 방지
+- **참조 방식 선택 원칙: 계약 vs 설정**
+  - 계약 (같은 GO + 필수) → `GetComponent` + `[RequireComponent]`
+  - 설정 (다른 GO 또는 선택) → `[SerializeField]` + Inspector 드래그
+- **책임의 레이어 분리 (SoC)** — 각 클래스는 자기 레이어만 담당. 상위 매니저가 레이어 간 조율
+- **YAGNI 판단 경계** — "답을 찍는 것" vs "디자인이 확정된 것". 설계 질문에 구체적 답이 가능하면 YAGNI 대상 아님 → 설계 반영
+
+### Weak Points (다음 세션 복습 권장)
+
+1. **`SetActive` vs `.enabled` 타이밍 함정**
+   - `_obstacle.enabled = false` + `gameObject.SetActive(false)` 를 둘 다 쓰면 `.enabled` 가 `false` 로 고정됨 → `SetActive(true)` 복구 시 Obstacle 이 비활성 상태 → Carve 기능 부활 안 함
+   - 복습 질문: "SetActive 와 .enabled 는 각각 어느 레이어를 건드리는가? 풀링 복구 경로에서 `.enabled` 명시 조작을 피해야 하는 이유는?"
+
+2. **책임의 레이어 침범 (Structure vs RoundManager)**
+   - 파괴 로직이 자연스레 "Grid 정리까지 내가 한다" 로 흐르기 쉬움 → 이게 레이어 침범
+   - 복습 질문: "`Die()` 가 Grid 를 안 건드리는 게 왜 더 깨끗한가? RoundManager 가 아직 없는 지금도 그렇게 두는 이유는?"
+
+3. **계약 vs 설정 — 참조 방식 기준**
+   - 복습 질문: "`NavMeshObstacle` 은 `GetComponent`, `GridField` 는 `[SerializeField]` 인 이유는? 판단 기준 한 줄로 정리해보기"
+
+4. **NavMeshObstacle Carve 가 '비싼' 이유**
+   - NavMesh 위에 구멍을 뚫고 메꿀 때마다 주변 메시 재계산 비용 발생 → 구조물 수가 많거나 자주 켜지고 꺼지면 프레임 드랍 가능
+   - 복습 질문: "Carve=ON 의 비용은 어느 시점에 발생하는가? '많이 켜고 끄기' 가 왜 문제가 될 수 있나?"
+
+### 미완료 / 다음 세션
+- [ ] TASK-106 유닛 기본 구현 — 다음 작업
+- [ ] RoundManager 도입 시점(Phase 미정)의 복구 로직 설계 — TASKS.md `장기 TODO` 에 기록 완료
+
+### 메모
+- Structure 프리팹 루트에 NavMeshObstacle 자동 추가는 `[RequireComponent]` 덕분에 Unity 가 수행 (수동 Add Component 불필요)
+- `Carve Only Stationary` 는 기본값 유지 — 구조물은 항상 정지 상태라 적합
+- 전투 페이즈 NavMesh 실동작 검증(벽 회피/파괴 후 돌파) 은 **TASK-107/108** 단계에서 (`NavMeshSurface` + `NavMeshAgent` 도입 후). 이번 세션에서는 "파괴 시 GameObject 비활성" 까지만 관찰 가능
+- `StructureDamageTester.TryGetComponent` guard clause 수정은 여전히 미처리 — 다음 Tester 손대는 세션에 같이 정리 권장

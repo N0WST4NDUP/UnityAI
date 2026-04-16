@@ -3,7 +3,6 @@
 > 전체 작업 목록 + 진행 상태. Phase별 세부 명세는 `PHASE_N.md` 참조.
 
 ## 진행 중
-- [ ] TASK-105: 기존 코드 재설계 적용 (Phase 1) — 담당: System
 - [ ] TASK-106: 유닛 기본 구현 (Phase 1) — 담당: Unit
 - [ ] TASK-107: NavMesh 기반 유닛 이동 (Phase 1) — 담당: Unit
 - [ ] TASK-108: 준비→전투 페이즈 전환 시스템 (Phase 1) — 담당: System
@@ -36,13 +35,19 @@
 - [ ] TASK-503: 전략 다양성 / 극적 연출 보상 튜닝 — 담당: Commander
 
 ## 완료
+- [x] TASK-105: 기존 코드 재설계 적용 (Phase 1) — 2026-04-17
 - [x] TASK-102: 구조물 배치 로직 (Phase 1) — 2026-04-16
 - [x] TASK-101: Grid 기반 필드 구현 (Phase 1) — 2026-04-15
 
 ## 블로킹 / 의존
-- TASK-106~110은 TASK-105 완료 후 시작 (기존 코드 정리 필요)
 - TASK-107, TASK-108은 병렬 가능 (NavMesh 이동 + 페이즈 전환)
-- Phase 2는 Phase 1 (TASK-105~110) 완료 후 시작
+- Phase 2는 Phase 1 (TASK-106~110) 완료 후 시작
 - Phase 3는 Phase 2 완료 후 시작
 - Phase 4는 Phase 3 이후 (아이템은 Agent observation 반영 필요)
 - Phase 5는 Phase 3 완료 후 시작
+
+## 장기 TODO (Phase 미정, RoundManager 도입 시점에 검토)
+- 구조물 라운드 복구 로직: `Structure.Init()` 재호출 또는 `Reset()` 메서드 설계
+  - 풀링 매니저 필요성 재평가 (현재 규모에선 단순 `SetActive(true)` 순회로 충분할 수 있음)
+  - Grid 재동기화는 RoundManager 책임 (구조물은 자기 레이어만)
+  - 플레이어 선택(복구 / 포기 / 수리 비용) 정책 확정 필요

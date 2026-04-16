@@ -1,16 +1,18 @@
 using UnityAI.Grid;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace UnityAI.Structures
 {
+    [RequireComponent(typeof(NavMeshObstacle))]
     public class Structure : MonoBehaviour
     {
         // --- Inspector ---
         [SerializeField] private int _maxDurability = 3;
 
         // --- Internal ---
+        private NavMeshObstacle _obstacle;
         private int _currDurability;
-        private GridField _gridField;
         private Vector2Int _gridPosition;
 
         // --- Properties ---
@@ -18,10 +20,15 @@ namespace UnityAI.Structures
         public int CurrentDurability => _currDurability;
         public Vector2Int GridPosition => _gridPosition;
 
-        public void Init(GridField gridField, Vector2Int gridPosition)
+        // --- Unity Lifecycle ---
+        private void Awake()
+        {
+            _obstacle = GetComponent<NavMeshObstacle>();
+        }
+
+        public void Init(Vector2Int gridPosition)
         {
             _currDurability = _maxDurability;
-            _gridField = gridField;
             _gridPosition = gridPosition;
         }
 
@@ -35,8 +42,7 @@ namespace UnityAI.Structures
 
         private void Die()
         {
-            _gridField.SetCellState(_gridPosition.x, _gridPosition.y, CellState.Empty);
-            Destroy(gameObject);
+            gameObject.SetActive(false);
         }
     }
 }

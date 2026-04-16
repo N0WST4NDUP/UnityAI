@@ -117,11 +117,6 @@ namespace UnityAI.Grid
                     Gizmos.color = Color.blue;
                     Gizmos.DrawCube(center, size);
                     break;
-
-                case CellState.Danger:
-                    Gizmos.color = Color.red;
-                    Gizmos.DrawCube(center, size);
-                    break;
             }
         }
         #endregion

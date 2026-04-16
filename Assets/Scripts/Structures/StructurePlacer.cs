@@ -36,7 +36,7 @@ namespace UnityAI.Structures
 
             _grid.SetCellState(gridPos, CellState.Structure);
             var structure = Instantiate(_structurePrefab, _grid.GridToWorld(gridPos), Quaternion.identity);
-            structure.GetComponent<Structure>().Init(_grid, gridPos);
+            structure.GetComponent<Structure>().Init(gridPos);
         }
     }
 }

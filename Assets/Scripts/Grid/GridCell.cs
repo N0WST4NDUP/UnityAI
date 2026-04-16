@@ -5,6 +5,5 @@ namespace UnityAI.Grid
         Empty = 0,
         Structure = 1,
         Occupied = 2,
-        Danger = 3,
     }
 }
