@@ -285,3 +285,110 @@
 - `Carve Only Stationary` 는 기본값 유지 — 구조물은 항상 정지 상태라 적합
 - 전투 페이즈 NavMesh 실동작 검증(벽 회피/파괴 후 돌파) 은 **TASK-107/108** 단계에서 (`NavMeshSurface` + `NavMeshAgent` 도입 후). 이번 세션에서는 "파괴 시 GameObject 비활성" 까지만 관찰 가능
 - `StructureDamageTester.TryGetComponent` guard clause 수정은 여전히 미처리 — 다음 Tester 손대는 세션에 같이 정리 권장
+
+---
+
+## 2026-04-17 (계속) — TASK-106 유닛 기본 구현 + 네임스페이스 제거
+
+### 목표
+- TASK-106: `UnitBase` + `UnitPlacer` 구현 (HP / 팀 ID / 직군, 준비 페이즈 Grid 배치)
+- (세션 후반 추가) 모든 스크립트에서 namespace 제거
+
+### 완료
+- [x] `Assets/Scripts/Units/UnitEnum.cs` — `Tribe(Human/Orc)`, `UnitType(Soldier/Archer/Tank)` 열거형
+- [x] `Assets/Scripts/Interfaces/IDamageable.cs` — `OnDamaged(float damage)` 단일 메서드 (TASK-102 에서 YAGNI 로 미뤄뒀던 인터페이스 추출 시점)
+- [x] `Assets/Scripts/Units/Unit.cs` — MonoBehaviour, IDamageable
+  - `[RequireComponent(typeof(NavMeshAgent))]` — 전투 이동 계약 (TASK-107 대비)
+  - Inspector: `_tribe`, `_type`, `_maxHealth = 100f`
+  - Runtime: `_groupId` (Init 주입), `_currentHealth`, `_startPosition`
+  - Properties: `GroupId / Tribe / Type / MaxHealth / CurrentHealth / IsDead / StartPosition`
+  - `OnEnable()` — 활성화 시 `_currentHealth = _maxHealth` 리셋 (라운드 복구 재활용 대비)
+  - `Init(Vector2Int, int)` — grid 위치 + 그룹 ID 저장
+  - `OnDamaged(float)` + `private Die()` → `gameObject.SetActive(false)` (Structure 와 동일 패턴)
+  - 세션 중 `abstract` 제거 + `UnitBase` → `Unit` 리네이밍 (컴포지션 채택 결정 이후)
+- [x] `Assets/Scripts/Units/UnitPlacer.cs` — `StructurePlacer` 패턴 복사 + 필요한 지점만 수정
+  - `CellState.Occupied` 로 셀 상태 세팅 (Structure 는 `Structure`)
+  - `Init(gridPos, groupId)` 호출 (groupId 는 임시 하드코딩 `0`)
+- [x] TASK-106 완료 조건 검증: Play 모드에서 Unit 배치 → Grid Gizmo 파란색(Occupied) 반영 확인
+- [x] (세션 후반) 모든 스크립트(`GridCell.cs`, `GridField.cs`, `Structure.cs`, `StructurePlacer.cs`, `StructureDamageTester.cs`) 에서 `namespace UnityAI.*` 제거
+- [x] (세션 후반) `Structure.cs` / `StructurePlacer.cs` 의 `using UnityAI.Grid;` 제거
+- [x] (세션 후반) `Structure.cs` 의 미사용 `_obstacle` 필드 + `Awake()` 제거 (IDE 진단 `Private member '_obstacle' can be removed` 반영)
+
+### 설계 결정 (향후 영향)
+
+1. **컴포지션 > 상속 (공격/스킬 로직 처리 방향)**
+   - `UnitBase` 의 `abstract` 제거, concrete 클래스로 확정
+   - Soldier/Archer/Tank 서브클래스 생성 안 함
+   - TASK-109 에서 `AttackComponent`, `SkillComponent` 등 **별도 컴포넌트를 각 프리팹에 부착**하는 방식
+   - 이유: Unity 컴포넌트 철학 + 조합 유연성 + 깊은 상속 계층 회피
+
+2. **정체성 분류 축: SerializeField vs Init 인자 분리**
+   - `Tribe` / `UnitType` → **프리팹별 고정 정체성** → SerializeField
+   - `GroupId` (팀 ID) → **매치별 동적 소속** → Init 인자
+   - 기준: "여러 인스턴스가 공유할 값인가" (프리팹) vs "인스턴스마다 다를 수 있나" (런타임 주입)
+
+3. **IDamageable 인터페이스 추출 (YAGNI 해제 시점)**
+   - TASK-102 결정("중복 발생 시 추출")의 번복
+   - 현재 `Unit` 만 구현. `Structure` 의 `TakeDamage(int)` → `OnDamaged(float)` 일관화는 TASK-110 에서
+
+4. **namespace 제거 (현 규모 대비 과한 계층)**
+   - 나중에 **대분류/소분류**로 의미있는 경계가 생기는 시점에 재도입
+   - Unity 는 namespace 강제하지 않음 → 작은 프로젝트에선 글로벌 네임스페이스가 오히려 검색·네비 용이
+
+### 학습 포인트 (사용자)
+
+- **MonoBehaviour 이벤트 실행 순서 vs 외부 Init 호출 순서**
+  - Instantiate → Awake → OnEnable → Start → ... **이후** 외부 코드가 `Init(...)` 호출
+  - OnEnable 에서 Init 로 주입될 값(예: `_startPosition`) 에 의존하면 **첫 실행 시 기본값(0)** 으로 동작 → 은밀한 버그
+  - 이번 세션엔 본인이 직접 연표를 추적해서 발견 (OnEnable 의 `transform.position = new(_startPosition.x, 0f, _startPosition.y)` 함정)
+
+- **Placer 가 월드 좌표를 책임진다 (SoC 원칙 일관)**
+  - `Instantiate(prefab, worldPos, rotation)` 에서 spawner 가 위치 지정
+  - Unit/Structure 본체는 좌표 변환을 몰라도 됨 → GridField 참조를 본체에 안 둬도 됨
+  - TASK-105 에서 `Structure._gridField` 제거한 것과 같은 논리
+
+- **SerializeField vs Init 인자 — 선택 기준의 언어화**
+  - "프리팹마다 같은 값" → SerializeField
+  - "매 인스턴스/매치마다 다른 값" → Init 주입
+  - 이 기준을 두 번째 클래스(Unit) 에 적용하며 체득
+
+- **abstract 유지 판단 = "서브클래스의 행동 차이를 어떻게 표현하느냐"**
+  - 상속으로 표현 → abstract 유지
+  - 컴포지션으로 표현 → abstract 불필요
+  - "지금 abstract 가 뭘 해주고 있나?" 라는 회고 질문 유효
+
+- **읽기 전용 프로퍼티의 필요성**
+  - `[SerializeField] private` 만으론 Inspector 에서만 보이고 **런타임 외부 코드가 못 읽음**
+  - 시너지 매니저 / UI / 디버그 등 외부 시스템이 읽어야 하면 `public X => _x;` 프로퍼티 필수
+  - "설정"(Inspector) 과 "조회"(런타임) 는 별개 경로라는 감각
+
+- **GameObject.SetActive vs Component.enabled 복습 (TASK-105 연장)**
+  - `_obstacle` 필드를 아예 제거한 배경. `[RequireComponent]` + `SetActive` 만으로 충분 — C# 레퍼런스 유지할 이유가 없음
+
+### Weak Points (다음 세션 복습 권장)
+
+1. **SerializeField 초기값 미설정 = 0 함정**
+   - `_maxHealth` 에 `= 100f` 기본값이 없으면 Inspector 세팅을 깜빡한 프리팹은 **첫 프레임에 즉시 사망** (HP 0)
+   - 복습 질문: "C# value type 의 기본값이 0 인 것과, SerializeField 미설정 함정의 관계를 설명해보기. `_maxHealth` 와 `_maxDurability` 둘 다 기본값을 주는 것이 왜 방어적인가?"
+
+2. **외부 Init 은 OnEnable **뒤** 에 실행된다**
+   - 이벤트 실행 순서(Instantiate → Awake → OnEnable → Start → 외부 Init) 를 **제대로 떠올려** 야 OnEnable 이 Init 값에 의존하는 설계가 위험함을 인식
+   - 복습 질문: "`var u = Instantiate(prefab); u.Init(pos, 0);` 이 실행되면 전체 이벤트 실행 순서는? 각 시점의 `_startPosition` 값은?"
+
+3. **GroupId 하드코딩 `0` — 드러난 기술 부채**
+   - `TryPlaceUnit(0)` 의 `0` 은 테스트용. 실제론 **"지금 배치 중인 플레이어"** 가 공급해야 함 (Phase 6 플레이어 시스템)
+   - 복습 질문: "현 구조에서 'Player 1 이 자기 팀 유닛만 배치' 를 어떻게 강제할 수 있는가? UnitPlacer 에 PlayerId 를 SerializeField 로 둘지, 아니면 상위 PlacementController 가 내려줄지 — 각각의 장단점?"
+
+### 미완료 / 다음 세션
+- [ ] TASK-107 NavMesh 기반 유닛 이동 — 다음 작업
+- [ ] Unit.cs 내 `//` 빈 주석 정리 (사소)
+- [ ] `Structure` 에도 `IDamageable` 구현 적용 (TASK-110 에 포함 예상)
+- [ ] `UnitPlacer` + `StructurePlacer` 좌클릭 충돌 — TASK-108 PhaseManager 가 해결
+- [ ] `StructureDamageTester.TryGetComponent` guard clause (지속 미처리)
+
+### 메모
+- 검증 범위: Unit 단일 배치 + Grid 상태 파란색 확인까지. 이동/전투는 TASK-107, TASK-109.
+- `UnitBase → Unit` 리네이밍은 세션 중 수용 (파일·클래스·UnitPlacer 참조 모두 갱신됨). `abstract` 제거와 맞물려 자연스러운 선택.
+- `Assets/Scripts/Grid/` → `Assets/Scripts/Fields/` 폴더 리네이밍 (사용자 직접 수행). "필드 시스템" 이라는 CLAUDE.md 용어와 정렬.
+- 테스트 시 StructurePlacer 와 UnitPlacer 중 하나만 활성화하거나 `_isPreparationPhase` 토글로 번갈아 테스트하는 워크어라운드 사용
+- IDE 진단이 `_obstacle` 미사용을 잡아준 덕에 Structure 도 추가 정리됨 — 정적 분석 신호를 놓치지 말 것

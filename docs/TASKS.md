@@ -3,7 +3,6 @@
 > 전체 작업 목록 + 진행 상태. Phase별 세부 명세는 `PHASE_N.md` 참조.
 
 ## 진행 중
-- [ ] TASK-106: 유닛 기본 구현 (Phase 1) — 담당: Unit
 - [ ] TASK-107: NavMesh 기반 유닛 이동 (Phase 1) — 담당: Unit
 - [ ] TASK-108: 준비→전투 페이즈 전환 시스템 (Phase 1) — 담당: System
 - [ ] TASK-109: 기본 공격/스킬 시스템 (Phase 1) — 담당: Unit
@@ -35,6 +34,7 @@
 - [ ] TASK-503: 전략 다양성 / 극적 연출 보상 튜닝 — 담당: Commander
 
 ## 완료
+- [x] TASK-106: 유닛 기본 구현 (Phase 1) — 2026-04-17
 - [x] TASK-105: 기존 코드 재설계 적용 (Phase 1) — 2026-04-17
 - [x] TASK-102: 구조물 배치 로직 (Phase 1) — 2026-04-16
 - [x] TASK-101: Grid 기반 필드 구현 (Phase 1) — 2026-04-15

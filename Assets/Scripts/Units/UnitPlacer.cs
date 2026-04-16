@@ -1,10 +1,10 @@
 using UnityEngine;
 
-public class StructurePlacer : MonoBehaviour
+public class UnitPlacer : MonoBehaviour
 {
     // --- Inspector ---
     [SerializeField] private GridField _grid;
-    [SerializeField] private GameObject _structurePrefab;
+    [SerializeField] private GameObject _unitPrefab;
     [SerializeField] private bool _isPreparationPhase = true;
 
     // --- Internal ---
@@ -20,10 +20,10 @@ public class StructurePlacer : MonoBehaviour
         if (!_isPreparationPhase) return;
         if (!Input.GetMouseButtonDown(0)) return;
 
-        TryPlaceStructure();
+        TryPlaceUnit(0); // TODO: Phase 6에서 채움
     }
 
-    private void TryPlaceStructure()
+    private void TryPlaceUnit(int groupId)
     {
         var ray = _camera.ScreenPointToRay(Input.mousePosition);
         if (!Physics.Raycast(ray, out RaycastHit hit)) return;
@@ -31,8 +31,8 @@ public class StructurePlacer : MonoBehaviour
         var gridPos = _grid.WorldToGrid(hit.point);
         if (_grid.GetCellState(gridPos) != CellState.Empty) return;
 
-        _grid.SetCellState(gridPos, CellState.Structure);
-        var structure = Instantiate(_structurePrefab, _grid.GridToWorld(gridPos), Quaternion.identity);
-        structure.GetComponent<Structure>().Init(gridPos);
+        _grid.SetCellState(gridPos, CellState.Occupied);
+        var unit = Instantiate(_unitPrefab, _grid.GridToWorld(gridPos), Quaternion.identity);
+        unit.GetComponent<Unit>().Init(gridPos, groupId);
     }
 }
