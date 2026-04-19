@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 5115360420135179464}
   - component: {fileID: 8347858344971537611}
   - component: {fileID: 7001506848369975430}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -126,7 +126,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 438b2c873d818d643babba31d209f505, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UnityAI.Structures.Structure
-  _maxDurability: 3
+  _maxDurability: 100
 --- !u!208 &7001506848369975430
 NavMeshObstacle:
   m_ObjectHideFlags: 0

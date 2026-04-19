@@ -18,7 +18,7 @@ public class StructureDamageTester : MonoBehaviour
 
         hit.collider.TryGetComponent<Structure>(out var structure);
 
-        structure.TakeDamage(1);
-        Debug.Log("데미지!");
+        structure.OnDamaged(1);
+        Debug.Log($"[{GetType().Name}] Structure damaged. Durability: {structure.CurrentDurability}");
     }
 }

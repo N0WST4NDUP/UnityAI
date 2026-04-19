@@ -3,9 +3,10 @@ using UnityEngine;
 public class StructurePlacer : MonoBehaviour
 {
     // --- Inspector ---
+    [SerializeField] private PhaseManager _phaseManager;
+    [SerializeField] private PlacementController _placementController;
     [SerializeField] private GridField _grid;
     [SerializeField] private GameObject _structurePrefab;
-    [SerializeField] private bool _isPreparationPhase = true;
 
     // --- Internal ---
     private Camera _camera;
@@ -17,7 +18,8 @@ public class StructurePlacer : MonoBehaviour
 
     private void Update()
     {
-        if (!_isPreparationPhase) return;
+        if (_phaseManager.Current != Phase.Preparation) return;
+        if (_placementController.Mode != PlacementMode.Structure) return;
         if (!Input.GetMouseButtonDown(0)) return;
 
         TryPlaceStructure();
@@ -32,7 +34,12 @@ public class StructurePlacer : MonoBehaviour
         if (_grid.GetCellState(gridPos) != CellState.Empty) return;
 
         _grid.SetCellState(gridPos, CellState.Structure);
-        var structure = Instantiate(_structurePrefab, _grid.GridToWorld(gridPos), Quaternion.identity);
-        structure.GetComponent<Structure>().Init(gridPos);
+        var worldPos = _grid.GridToWorld(gridPos);
+        var structure = Instantiate(
+            _structurePrefab,
+            worldPos,
+            Quaternion.identity);
+
+        structure.GetComponent<Structure>().Init(1, worldPos); // TODO: 추후 그룹아이디가 생길 시 수정
     }
 }

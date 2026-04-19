@@ -6,69 +6,56 @@
 ## 선행 조건 (의존 Phase)
 - 없음 (프로젝트 시작점)
 
-## 기존 완료 작업 (재설계 전 완료, 수정 필요)
-- `GridField.cs`, `GridCell.cs` — Grid 기반 셀 관리 (유지, CellState.Danger 제거 필요)
-- `Structure.cs` — 내구도 관리 (유지, NavMeshObstacle 연결 필요)
-- `StructurePlacer.cs` — 준비 페이즈 배치 (유지)
-- `StructureDamageTester.cs` — 테스트용 (유지)
+## 완료된 Task
 
-## 세부 Task 목록
+### ✅ TASK-105: 기존 코드 재설계 적용 (2026-04-17)
+- `CellState.Danger` 제거 → Empty / Structure / Occupied 3종 확정 (`Assets/Scripts/Fields/GridCell.cs`)
+- `Structure.cs`에 `[RequireComponent(typeof(NavMeshObstacle))]` 추가
+  - NavMeshObstacle과의 연동은 코드 참조 없음 — `Die()` 에서 `SetActive(false)` 시 Unity가 자동으로 모든 컴포넌트 비활성화 (Carve 해제 → NavMesh 자동 복구)
+  - `_obstacle` 필드를 명시적으로 두지 않는 이유: `SetActive`만으로 충분, 불필요한 참조 제거
 
-### TASK-105: 기존 코드 재설계 적용
-- 구현 위치: `Assets/Scripts/Grid/GridCell.cs`, `Assets/Scripts/Structures/Structure.cs`
+### ✅ TASK-106: 유닛 기본 구현 (2026-04-17 → 2026-04-19 재설계)
+구현된 파일:
+- `Unit.cs` (abstract) — 정체성(Tribe/UnitType/Rank) + `_preparationPosition` + `Return()`
+  - `OnPreparationStart` 구독 → `Return()`: `SetActive(true)` + 위치 복원
+- `UnitHealth.cs` — `IDamageable` 구현, HP/Die 관리, `Init(Unit)` 주입
+- `UnitMovement.cs` — `IMovable` 구현, NavMeshAgent 래핑, `Init(Unit)` 주입
+  - `OnBattleStart` → `EnableMovement()`, `OnBattleEnd` → `DisableMovement()`
+- `UnitAnimator.cs` — `PlayMoveAnimation(float speed)` 전담
+- `UnitEnum.cs` — `Tribe`, `UnitType` enum
+- `Human/HumanSoldier.cs` — `Unit` 구체 클래스: Awake에서 컴포넌트 캐싱, Start에서 Init 호출
+
+### ✅ TASK-107: NavMesh 기반 유닛 이동 (2026-04-18)
+- `UnitMovement.MoveTo(Vector3)` → `NavMeshAgent.SetDestination()`
+- `enableMovement/DisableMovement()` Phase 이벤트로 제어
+- 구조물 회피 경로 탐색 동작 확인
+
+### ✅ TASK-108: 준비 → 전투 페이즈 전환 시스템 (2026-04-18)
+- `PhaseManager.cs`: 이벤트 4종 (OnPreparationEnd/Start, OnBattleStart/End), Space 토글 (Phase 6에서 UI 교체)
+- `NavMeshBaker.cs`: `NavMeshSurface.BuildNavMesh()` 래퍼
+- `PlacementController.cs`: 1/2 키로 배치 모드 전환 (Phase 6에서 UI 교체)
+
+## 진행 중인 Task
+
+### 🔲 TASK-109: 기본 공격/스킬 시스템
+- 구현 위치: `Assets/Scripts/Units/UnitAttack.cs` (신규), `IAttackable` 인터페이스
+- 설계 방향 (SOLID):
+  - `IAttackable` 인터페이스: `Attack()` 또는 타겟 설정 메서드
+  - `UnitAttack.cs`: 타겟 탐색(`OverlapSphere`) → `IDamageable.OnDamaged()` 호출 + 쿨타임
+  - 공격력/사거리는 ScriptableObject (OCP: 직군별 다른 값, 코드 변경 없이 데이터로 분기)
+- 완료 조건:
+  - 근처 적 유닛 자동 타겟 선택
+  - 사거리 내 접근 → `IDamageable.OnDamaged()` 호출
+  - 쿨타임 적용, 타겟 사망 시 새 타겟 선택
+
+### 🔲 TASK-110: 구조물 파괴 → NavMesh 갱신 연동 검증
+- 구현 위치: `Assets/Scripts/Structures/Structure.cs`, `Testing/StructureDamageTester.cs`
 - 작업 내용:
-  - `CellState.Danger` 제거 (전투 중 위험 영역은 월드 좌표 AoE로 처리)
-  - `Structure.cs`에 NavMeshObstacle 연동 추가 (Die() 시 Obstacle 비활성화)
+  - `StructureDamageTester.TryGetComponent` guard clause 추가 (3세션 미처리)
+  - `Structure`에 `IDamageable` 인터페이스 적용 (float 타입 일관화, `TakeDamage(int)` → `OnDamaged(float)`)
+  - 파괴 후 NavMesh 복구 + 유닛 통과 실제 검증
 - 완료 조건:
-  - CellState enum: Empty(0), Structure(1), Occupied(2) 세 가지만 존재
-  - Structure 파괴 시 NavMeshObstacle 비활성화 확인
-
-### TASK-106: 유닛 기본 구현
-- 구현 위치: `Assets/Scripts/Units/Unit.cs`
-- 입력: HP, 팀 ID, 직군
-- 출력: 데미지 처리, 사망 시 제거
-- 완료 조건:
-  - TakeDamage / Die 동작
-  - 준비 페이즈에서 Grid 셀에 배치 가능
-  - 전투 시작 시 World 좌표로 전환
-
-### TASK-107: NavMesh 기반 유닛 이동
-- 구현 위치: `Assets/Scripts/Units/UnitMovement.cs`
-- 입력: 목표 위치 (World 좌표)
-- 출력: NavMeshAgent를 통한 이동
-- 완료 조건:
-  - NavMeshAgent.SetDestination()으로 자유 이동
-  - 구조물(NavMeshObstacle)을 자동 회피
-  - 구조물 파괴 후 해당 경로로 이동 가능 확인
-
-### TASK-108: 준비 → 전투 페이즈 전환 시스템
-- 구현 위치: `Assets/Scripts/Phase/PhaseManager.cs`, `Assets/Scripts/Phase/NavMeshBaker.cs`
-- 작업 내용:
-  - 준비 페이즈: Grid 활성, 유닛/구조물 배치
-  - 전투 시작 버튼: NavMeshSurface.BuildNavMesh() → 유닛 NavMeshAgent 활성화
-  - 전투 페이즈: Grid 비활성, 자유 이동
-- 완료 조건:
-  - 준비 페이즈에서 유닛/구조물 배치 후 "전투 시작" → NavMesh Bake 성공
-  - 유닛이 NavMesh 위에서 자유 이동
-  - 구조물이 NavMeshObstacle로 동작 (유닛이 회피)
-
-### TASK-109: 기본 공격 / 스킬 시스템 (직군별)
-- 구현 위치: `Assets/Scripts/Combat/` (Attack, Skill, DamageSystem 등)
-- 입력: 공격자 Unit, 타겟 Unit 또는 위치
-- 출력: 피해 적용, 사망 처리
-- 완료 조건:
-  - 탱커 / 딜러 / 마법사 3직군 기본 공격 동작
-  - 마법사 범위 스킬은 월드 좌표 AoE
-  - 사망 시 유닛 제거
-
-### TASK-110: 구조물 파괴 → NavMesh 갱신 연동
-- 구현 위치: `Assets/Scripts/Structures/Structure.cs`
-- 작업 내용:
-  - 구조물 파괴 시 NavMeshObstacle 제거
-  - NavMesh 자동 복구 확인 (Carve 기능)
-  - 유닛이 파괴된 구조물 자리를 통과할 수 있는지 확인
-- 완료 조건:
-  - 구조물 파괴 → 해당 위치 NavMesh 복구 → 유닛 통과 가능
+  - 구조물 `SetActive(false)` → NavMeshObstacle Carve 해제 → 해당 경로 유닛 통과 가능
 
 ## 주의사항
 - Phase 1에서는 ML-Agents 학습 코드를 섞지 않는다.

@@ -2,36 +2,60 @@ using UnityEngine;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(NavMeshObstacle))]
-public class Structure : MonoBehaviour
+public class Structure : MonoBehaviour, IGroupOwned, IDamageable
 {
     // --- Inspector ---
-    [SerializeField] private int _maxDurability = 3;
+    [SerializeField] private float _maxDurability = 100f;
 
     // --- Internal ---
-    private int _currDurability;
-    private Vector2Int _gridPosition;
+    private int _groupId;
+    private float _currDurability;
+    private Vector3 _preparationPosition;
 
     // --- Properties ---
-    public int MaxDurability => _maxDurability;
-    public int CurrentDurability => _currDurability;
-    public Vector2Int GridPosition => _gridPosition;
+    public int GroupId => _groupId;
+    public float MaxDurability => _maxDurability;
+    public float CurrentDurability => _currDurability;
+    public Vector3 PreparationPosition => _preparationPosition;
 
-    public void Init(Vector2Int gridPosition)
+    public PhaseManager PhaseManager { get; private set; }
+
+    private void Awake()
     {
-        _currDurability = _maxDurability;
-        _gridPosition = gridPosition;
+        PhaseManager = GameObject.FindGameObjectWithTag("Manager").GetComponent<PhaseManager>();
+        PhaseManager.OnPreparationStart += ReturnTo;
     }
 
-    public void TakeDamage(int amount)
+    public void Init(int groupId, Vector3 position)
     {
-        if (amount <= 0) return;
+        _groupId = groupId;
+        _currDurability = _maxDurability;
+        _preparationPosition = position;
+    }
 
-        _currDurability -= amount;
+    private void OnDestroy()
+    {
+        PhaseManager.OnPreparationStart -= ReturnTo;
+    }
+
+    public void OnDamaged(float damage)
+    {
+        if (damage <= 0) return;
+
+        _currDurability -= damage;
         if (_currDurability <= 0) Die();
     }
 
     private void Die()
     {
         gameObject.SetActive(false);
+    }
+
+    protected virtual void ReturnTo()
+    {
+        gameObject.SetActive(true);
+        transform.position = _preparationPosition;
+        transform.rotation = Quaternion.identity;
+        _currDurability = _maxDurability;
     }
 }
