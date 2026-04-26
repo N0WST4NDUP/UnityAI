@@ -39,8 +39,10 @@ public class UnitAttack : MonoBehaviour
 
     private void Enable()
     {
-        _cooldownTimer = _stats.Cooldown;
         _isActive = true;
     }
-    private void Disable() => _isActive = false;
+    private void Disable()
+    {
+        _isActive = false;
+    }
 }

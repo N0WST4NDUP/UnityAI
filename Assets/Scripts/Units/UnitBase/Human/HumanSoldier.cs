@@ -11,10 +11,8 @@ public class HumanSoldier : Unit
     private UnitAttack _attack;
     private UnitAnimator _animator;
 
-    protected override void Awake()
+    protected void Awake()
     {
-        base.Awake();
-
         _health = GetComponent<UnitHealth>();
         _movement = GetComponent<UnitMovement>();
         _attack = GetComponent<UnitAttack>();

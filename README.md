@@ -1,10 +1,11 @@
 # UnityAI
 
 ## Branches
-- \***`main`**
+- `main`
 - `StatePatternAgent`
 - `RaySensorTutorial`
 - `CommanderAgent`
+- \***`AutoChessLike`**
 
 ## Installed Packages
 

@@ -21,6 +21,8 @@ public class BattleTestInput : MonoBehaviour
         var movements = FindObjectsByType<UnitMovement>(FindObjectsSortMode.None);
         foreach (var m in movements)
         {
+            if (m.GetComponent<Unit>().GroupId != 0) continue;
+
             m.MoveTo(hit.point);
             Debug.Log($"[{GetType().Name}] OnClicked to {hit.point}");
         }

@@ -747,3 +747,179 @@
 ### 미완료 / 다음 세션
 - Phase 2 착수: TASK-201 직군별 Observation 설계
 - Placer 코드 중복 리팩토링 (낮은 우선순위)
+
+---
+
+## 2026-04-19 (4차) — Phase 2 시작: ML-Agents 기초 + TASK-201
+
+### 목표
+- ML-Agents Agent 클래스 개념 학습
+- Observation 공간 설계 (이론)
+- `UnitAgent.cs` 기초 뼈대 작성 (CollectObservations 자기 상태 관측)
+
+### 환경 확인
+- Python mlagents: 설치 완료
+
+### 완료
+- [x] ML-Agents Agent 클래스 개념 학습 (MonoBehaviour 상속, CollectObservations/OnActionReceived/Heuristic)
+- [x] Observation 설계 이론 (자기 상태 + 주변 유닛 + 0패딩 고정 크기 방식)
+- [x] `Assets/Scripts/Agents/UnitAgent.cs` — Agent 상속, CollectObservations 자기 상태 (HP, 위치, 팀ID)
+- [x] `Assets/Scripts/Registry/RegistryManager.cs` — 팀별 유닛 목록 관리
+- [x] `Unit.cs` — OnBattleStart/OnBattleEnd 이벤트로 Register/Unregister 연결
+- [x] `UnitHealth.cs` — Die() 시 Unregister() 호출
+
+### 미완료
+- [ ] UnitAgent 주변 적 유닛 관측 (적 슬롯 × 10, 존재flag + HP + 위치)
+- [ ] 구조물 관측
+- [ ] RaySensor 설정
+- [ ] Commander 명령 슬롯 예약
+
+### 다음 세션
+- Phase 2 전체 흐름(Observation→Action→Reward→학습)을 한 번에 그린 뒤 재시작
+- 조각 구현 전에 "유기적으로 어떻게 동작하는가" 큰 그림 먼저 확립
+
+### Weak Points (다음 세션 복습 권장)
+1. Observation / Action / Reward 세 요소가 학습 루프에서 어떻게 연결되는지 전체 흐름
+2. Commander가 추가됐을 때 Unit Observation이 어떻게 바뀌는지
+
+---
+
+## 2026-04-20 — Feudal HRL 전면 재설계
+
+### 목표
+- 커맨더/유닛 학습 종속성 문제 논의 → 완전 독립 학습 구조로 재설계
+- 설계 Q&A로 10개 핵심 결정사항 확정
+- 현재 코드 전수 검토 + (B)안 적합성 평가
+- 파생 문서 전면 갱신
+
+### 핵심 의사결정 (Q1~Q10)
+
+| 질문 | 결정 |
+|---|---|
+| Q1 명령 단위 | (b) 분대 단위 |
+| Q2 갱신 주기 | (a) 2초 고정 tick (학습 안정 후 이벤트 하이브리드 확장 가능) |
+| Q3 유닛 순종 | (ii) HP 0 외 안전밸브 없음 |
+| Q4 분대 구성 | (ii) 준비 페이즈 편성 + 전투 중 고정 |
+| Q5 명령 필드 | 3필드 시작 (target_position + priority_filter + structure_handling), 확장 6+필드 문서화 |
+| Q6 학습 순서 | (C) 커리큘럼 (Scripted → RL 유닛 → RL 커맨더) |
+| Q7 유닛 보상 | (ii) 수행도 80% + micro 20%, **승/패 보상 금지** |
+| Q8 커맨더 보상 | (다) Sparse + 최소 dense |
+| Q9 커맨더 관측 | (i) 완전 정보 시작 (시야 제한은 Phase 3+ 연구) |
+| Q10 유닛 관측 | (iii) 지역 + 현재 명령 + 분대 동료 (적 전체는 안 봄) |
+
+### 코드 전수 검토 결과
+
+**유지 가능 (Phase 1 기반, (B)안과 궁합 OK)**:
+- PhaseManager, NavMeshBaker, GridField/GridCell, Structure, UnitHealth, UnitMovement, UnitAnimator, UnitStatsSO/MeleeStatsSO, PlacementController, UnitPlacer/StructurePlacer, RegistryManager 뼈대, TrainManager
+
+**수정 필요**:
+- `Unit.cs`: SquadId 필드 추가
+- `UnitAttack.cs`: 자동 타겟팅 제거, 수동화 (Agent가 SetTarget) ⭐
+- `UnitEnum.cs`: UnitType(종) vs UnitRole(직군) 분리
+- `SoldierAgent.cs`: 관측/행동/보상 전면 재설계
+- `RegistryManager.cs`: 디버그 키 제거, Squad 단위 확장
+- `Unit`/`Structure` Awake: FindGameObjectWithTag → DI 전환
+
+**신규 추가**:
+- Team 시스템 (Team, TeamRegistry) — GroupTest 대체
+- Squad 시스템 (Squad, SquadRegistry, SquadFormation)
+- Command 시스템 (SquadCommand, TargetPriority, StructureHandling, CommandBroker, ScriptedCommander)
+- CommanderAgent (Phase 3)
+- EpisodeManager
+- SynergyFlags (Phase 2 중후반)
+
+**제거 대상**:
+- `GroupTest` 정적 변수 (Team 도입 직후)
+- `BattleTestInput`, `StructureDamageTester` (Phase 2 종료 시)
+- `RegistryManager.Update` 디버그 키 블록
+
+### 완료
+- [x] CLAUDE.md — AI 아키텍처 section 전면 재작성, 핵심 설계 결정 테이블 재구성
+- [x] ARCHITECTURE.md — 디렉토리 목표 구조, 클래스 책임(유지/수정/신규/제거), 데이터 흐름, 주의사항
+- [x] REWARDS.md — 유닛/커맨더 보상 완전 분리, 독립성 마지노선 명시, 스테이지별 보상 적용
+- [x] OBSERVATIONS.md — 유닛 관측(자기+명령+분대동료+지역) 64차원 초안, 커맨더 완전 정보 ~222차원 초안
+- [x] PHASE_2.md — 커리큘럼 Stage 1~2 Task 재편 (TASK-201~206 + TASK-210~218 인프라)
+- [x] PHASE_3.md — 커리큘럼 Stage 3 Task 재편 (TASK-310~317)
+- [x] TASKS.md — 재설계 결정사항 기록, 구/신 Task 매핑, 제거 목록 명시
+- [x] PROGRESS.md — 본 세션 로그
+
+### 완료 (재검토 추가분)
+
+- [x] PHASE_1.md — 완료 상태로 재정리, TASK-109/110 완료 처리, (B)안 재설계로 인한 후속 수정 영향(TASK-210/211/212/217) 명시
+- [x] PHASE_4.md — 바리케이드/포탄의 관측 슬롯 반영, 지형 편집을 커맨더 준비 정책(TASK-313)과 연계, structure_handling 확장 가능성 명시
+- [x] PHASE_5.md — 관리 대상 Policy 테이블 (직군별 + 커맨더), 전략 다양성을 명령 어휘 활용도로 재정의, Alternating Fine-tune을 TASK-504로 추가
+
+### 미완료 / 다음 세션
+
+- [ ] Phase 2 착수 — TASK-210 (DI 전환)부터 시작 권장
+
+### 메모
+
+- 이번 세션은 코드 변경 없이 설계·문서만 갱신.
+- 기존 `SoldierAgent.cs` / `RegistryManager.cs`는 일단 두고 Phase 2 TASK-211/217에서 재설계.
+- 코드 커밋은 별도 요청 시에만.
+
+### Weak Points (다음 세션 복습 권장)
+
+1. **Feudal HRL 개념** — 왜 유닛에 승/패 보상을 주면 종속성이 생기는가
+2. **명령 3필드의 의미** — target_position + priority_filter + structure_handling으로 표현 가능한 전략 (공성/우회/수비/돌파)
+3. **커리큘럼 3단계** — 왜 alternating보다 순차 freeze가 독립성에 유리한가
+4. **UnitAttack 수동화의 이유** — 자동 타겟팅이 명령의 priority_filter를 무력화하는 구조적 문제
+5. **커맨더 관측 "완전 정보"의 함의** — 연출(안개 전쟁)과 학습 안정성 트레이드오프
+
+---
+
+## 2026-04-26 — Phase 2 착수: Weak Points 복습 + TASK-210 (DI 전환)
+
+### 목표
+- 지난 재설계(2026-04-20) Weak Points 4개 복습 (1주일 공백 보충)
+- TASK-210 착수: Unit/Structure의 `FindGameObjectWithTag` 제거 → DI 전환
+- DI 개념 학습 (왜 Find 호출이 ML-Agents 병렬 학습에서 위험한가)
+
+### 완료 — Weak Points 복습
+- [x] **#1 Feudal HRL 종속성** — 사용자 답변 거의 정확. 보강: 종속성의 본질 = "유닛 정책이 특정 커맨더에 맞춰져 다른 커맨더와 조합 불가능"
+- [x] **#2 명령 3필드** — 처음엔 모름. `target_position + priority_filter + structure_handling`로 4가지 전략(공성/돌파/수비/우회) 표현 가능. NavMesh 의문(우회 방향 통제) 토론 → "NavMesh = 실행기 / Agent+커맨더 = 의사결정기, 우회 방향은 시간차 명령 시퀀스로 통제"
+- [x] **#3 커리큘럼 vs Alternating** — 사용자 답 정확("가중치 꼬임, 걸음마 비유"). 보강: OOD 문제 + Stage 3의 학습 신호 오염. PHASE_2.md 160라인의 "Scripted 커맨더가 명령 어휘 전영역 커버해야 함"이 직결
+- [x] **#4 UnitAttack 수동화** — 사용자 답 완벽. "사슬의 끊어진 고리" 개념으로 정리: Agent 출력이 환경에 영향 없으면 gradient 무의미
+
+### 완료 — TASK-210 DI 전환
+
+**설계 결정 (사용자 발의)**:
+- RegistryManager 의존성을 **지금** Unit에서 분리 (옵션 B 채택)
+- 이유: 현재 누구도 GroupedUnits를 읽지 않음 → 사실상 죽은 코드. TASK-211 (Team 시스템)에서 역할을 명확히 잡으며 재도입이 깔끔
+- YAGNI 정신 + 재설계 폭이 큰 영역에 미리 결합 만들지 않기
+
+**수정 파일 6개**:
+- [x] `Unit.cs` — Awake 통째 삭제, RegistryManager 필드/Register/Unregister 제거, `Init(int, Vector3, PhaseManager)` 시그니처 + Init 안에서 이벤트 구독, OnDestroy null 가드
+- [x] `UnitHealth.cs` — `_unit.Unregister()` 호출만 제거 (`_unit` 필드와 `Init(Unit)` 시그니처는 일관성 위해 유지 — 사용자 결정)
+- [x] `HumanSoldier.cs` — `base.Awake();` 한 줄 삭제
+- [x] `Structure.cs` — Awake 통째 삭제, `Init(int, Vector3, PhaseManager)` 시그니처 + Init 안에서 이벤트 구독, OnDestroy null 가드
+- [x] `UnitPlacer.cs` — `soldier.Init(GroupTest.groupId, worldPos, _phaseManager)` 호출
+- [x] `StructurePlacer.cs` — `structure.Init(GroupTest.groupId, worldPos, _phaseManager)` 호출
+
+**검증 (Unity 플레이 테스트)**:
+- ✅ 컴파일 통과
+- ✅ 유닛/구조물 배치 정상
+- ✅ 전투 시 NavMesh 이동 + 자동 공격
+- ✅ 구조물 파괴 → NavMesh 복구 → 유닛 통과
+- ✅ 준비 페이즈 복귀 시 ReturnTo 정상 (Init 안 이벤트 구독이 정상 동작 증명)
+
+### 학습 포인트 (사용자)
+- **DI의 본질**: 의존성을 "찾는" 게 아니라 "받는" — 환경 격리가 코드 구조로 강제됨
+- **Find의 진짜 위험은 성능이 아니라 비결정성**: ML-Agents 병렬 환경에서 16개 매니저 중 어느 것에 연결될지 보장 없음 → 환경 간 신호 오염 → **에러 없이 학습이 망가지는** 최악의 디버깅 상황
+- **YAGNI 적용**: 리팩토링 중에 안 쓰이는 의존성을 발견하면 미래 사용처가 모호하더라도 일단 분리. 진짜 필요할 때 명확한 역할로 재도입.
+- **이벤트 구독을 Awake → Init으로 옮긴 연쇄 효과**: Find의 매력 = "Awake에서 끝남". DI 전환 후 "Instantiate 직후 → Init 호출 전" 구간이 미완성 상태가 됨 → OnDestroy null 가드 필요
+
+### Weak Points (다음 세션 복습 권장)
+1. **이벤트 구독을 Init 안으로 옮긴 이유** — 왜 Awake 시점엔 매니저가 없는가 (Instantiate → Awake → Init 호출 순서)
+2. **OnDestroy null 가드의 의미** — Init이 호출되기 전에 파괴되는 비정상 케이스 방어
+3. **YAGNI 판단의 실용 기준** — RegistryManager는 "지금 안 쓰이는데 곧 쓰일 예정". 이런 회색지대에서 "지금 분리"를 택한 이유 (재설계 폭이 큰 영역에선 미리 결합 만들지 않기)
+
+### 미완료 / 다음 세션
+- [ ] TASK-211: Team 시스템 구축 (`Team`, `TeamRegistry`) — `GroupTest` 정적 변수 대체
+- TASK-211에서 RegistryManager 역할이 Team으로 흡수될지, 별도로 살아남을지 결정 필요
+
+### 메모
+- 코드 변경 6개 파일, 모두 사용자가 직접 타이핑 (가이드만 제공)
+- 커밋은 별도 요청 시에만 (현재 미커밋)
+

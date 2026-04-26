@@ -20,21 +20,20 @@ public class Structure : MonoBehaviour, IGroupOwned, IDamageable
 
     public PhaseManager PhaseManager { get; private set; }
 
-    private void Awake()
-    {
-        PhaseManager = GameObject.FindGameObjectWithTag("Manager").GetComponent<PhaseManager>();
-        PhaseManager.OnPreparationStart += ReturnTo;
-    }
-
-    public void Init(int groupId, Vector3 position)
+    public void Init(int groupId, Vector3 position, PhaseManager phaseManager)
     {
         _groupId = groupId;
         _currDurability = _maxDurability;
         _preparationPosition = position;
+        PhaseManager = phaseManager;
+
+        PhaseManager.OnPreparationStart += ReturnTo;
     }
 
     private void OnDestroy()
     {
+        if (PhaseManager == null) return;
+
         PhaseManager.OnPreparationStart -= ReturnTo;
     }
 

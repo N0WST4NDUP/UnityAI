@@ -32,6 +32,14 @@ sysinfo.txt
 # Crashlytics
 crashlytics-build.properties
 
+# 임시 데모 에셋 (게임 에셋으로 교체 예정)
+/[Aa]ssets/Action Minis Demo/
+/[Aa]ssets/Action Minis Demo.meta
+
+# Unity 자동 복구 폴더
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta
+
 # 빌드 산출물
 *.apk
 *.aab

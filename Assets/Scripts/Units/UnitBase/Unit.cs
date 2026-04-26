@@ -6,6 +6,7 @@ public abstract class Unit : MonoBehaviour, IGroupOwned
     [SerializeField] protected Tribe _tribe;
     [SerializeField] protected UnitType _type;
     [SerializeField] protected int _cost;
+
     // --- Internal ---
     protected int _groupId;
     protected int _rank = 1;
@@ -22,21 +23,20 @@ public abstract class Unit : MonoBehaviour, IGroupOwned
     // --- Dependancies ---
     public PhaseManager PhaseManager { get; private set; }
 
-    protected virtual void Awake()
-    {
-        PhaseManager = GameObject.FindGameObjectWithTag("Manager").GetComponent<PhaseManager>();
-        PhaseManager.OnPreparationStart += ReturnTo;
-    }
-
     protected virtual void OnDestroy()
     {
+        if (PhaseManager == null) return;
+
         PhaseManager.OnPreparationStart -= ReturnTo;
     }
 
-    public virtual void Init(int groupId, Vector3 position)
+    public virtual void Init(int groupId, Vector3 position, PhaseManager phaseManager)
     {
         _groupId = groupId;
         _preparationPosition = position;
+        PhaseManager = phaseManager;
+
+        PhaseManager.OnPreparationStart += ReturnTo;
     }
 
     protected virtual void ReturnTo()

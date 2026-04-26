@@ -41,6 +41,9 @@ public class UnitPlacer : MonoBehaviour
             Quaternion.identity);
 
         var soldier = unit.GetComponent<Unit>();
-        soldier.Init(groupId: 0, worldPos); // TODO: 추후 그룹아이디가 생길 시 수정
+        soldier.Init(
+            GroupTest.groupId,
+            worldPos,
+            _phaseManager); // TODO: 추후 그룹아이디가 생길 시 수정
     }
 }
