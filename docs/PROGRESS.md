@@ -921,5 +921,74 @@
 
 ### 메모
 - 코드 변경 6개 파일, 모두 사용자가 직접 타이핑 (가이드만 제공)
-- 커밋은 별도 요청 시에만 (현재 미커밋)
+- 커밋 완료: `6d91c69` (push 완료)
+
+---
+
+## 2026-04-26 (이어서) — TASK-211 Team 시스템 + TASK-290/291 동시 해결
+
+### 목표
+- TeamRegistry/Team 도입으로 GroupTest 정적 변수 폐기
+- RegistryManager 흡수 결정 (TASK-210에서 보류한 결정사항)
+
+### 핵심 설계 결정
+
+| 결정 | 선택 | 이유 |
+|---|---|---|
+| Team 형태 | **POCO** | 매치마다 reset 가벼움, 테스트 가능, 인스펙터 불필요 |
+| TeamRegistry 형태 | **MonoBehaviour** | Awake 자생성, 인스펙터로 주입 가능, ML-Agents 환경별 격리 자연스러움 |
+| RegistryManager 처리 | **흡수 폐기** (옵션 A) | 두 곳에 같은 정보 = 동기화 버그 위험. 글로벌 인덱스가 필요한 시나리오 없음. YAGNI |
+| Team 책임 (Phase 2) | GroupId + Units(List) + AddUnit/RemoveUnit | 시너지/골드/아이템은 등장 시점에 추가 |
+| ActiveGroupId 위치 | **PlacementController** | 이미 Mode(Unit/Structure) 들고 있음 → 같은 종류 상태의 단일 소유자 |
+| Team 생성 시점 | TeamRegistry.Awake에서 Team(0)/Team(1) 자동 생성 | Phase 2 단일 매치 가정. Phase 6 메타에서 외부 주입 가능 |
+
+### 완료 — 신규/수정 파일
+
+**신규 (3개 파일)**:
+- [x] `Assets/Scripts/Teams/Team.cs` — POCO. GroupId(생성자) + IReadOnlyList<Unit> Units + AddUnit/RemoveUnit
+- [x] `Assets/Scripts/Teams/TeamRegistry.cs` — MonoBehaviour. `k_TEAM_COUNT=2` 상수, 인덱서 `this[int]`, Awake에서 Team 자동 생성
+- (Team.cs 작성 시 `_units` 초기자 누락 → NRE 잠재 버그 발견 → 인라인 초기화로 수정)
+
+**수정 (3개 파일)**:
+- [x] `PlacementController.cs` — `ActiveGroupId` 필드 + Alpha3 토글 추가
+- [x] `UnitPlacer.cs` — TeamRegistry 인스펙터 추가, GroupTest → ActiveGroupId, `team.AddUnit(soldier)` 호출 추가, TryPlaceUnit 시그니처 단순화
+- [x] `StructurePlacer.cs` — GroupTest → PlacementController.ActiveGroupId
+
+**삭제 (Unity Project 창으로 처리)**:
+- [x] `Assets/Scripts/Registry/` 디렉토리 통째 (RegistryManager + 메타)
+- [x] `Assets/Scripts/Testing/GroupTest.cs` + 메타
+
+**디렉토리 정리 (사용자 자발적)**:
+- [x] `Assets/Scripts/Placement/` → `Assets/Scripts/Controller/` rename (PlacementController가 Controller 디렉토리로 이동)
+
+**Unity 작업**:
+- [x] Manager GameObject: RegistryManager 컴포넌트 제거 + TeamRegistry 컴포넌트 추가
+- [x] UnitPlacer 인스펙터: TeamRegistry 슬롯 연결
+
+### 검증 (Unity 플레이 테스트)
+- ✅ 컴파일 통과
+- ✅ 유닛/구조물 배치 정상
+- ✅ Alpha3로 양 팀 토글 정상 (PlacementController에서 처리)
+- ✅ 전투/구조물 파괴/준비 페이즈 복귀 모두 정상
+
+### 학습 포인트 (사용자)
+- **POCO에서도 캡슐화**: `IReadOnlyList<T>`로 외부 노출 + `private readonly List<T>` 저장소 + Add/Remove 메서드. 시너지 갱신 같은 로직 추가 시 한 곳에서 통제
+- **상태의 단일 소유자(SSOT)**: Mode와 ActiveGroupId처럼 같이 쓰이는 상태는 같은 곳에 모음 (PlacementController에 흡수)
+- **Awake 자생성 vs 외부 주입**: TeamRegistry처럼 외부 의존성 없는 매니저는 Awake에서 자기 상태 채우기. Phase 6에서 매치 N개 다룰 때 외부 주입으로 전환 가능
+- **인덱서 활용**: `GetTeam(int)` 대신 `this[int index]` — 의미상 "ID로 인덱싱"이 명확하면 인덱서가 더 간결
+- **YAGNI 적용 — RegistryManager 흡수**: TASK-210에서 "지금 필요할 때 명확한 역할로 재도입" 한 정신이 TASK-211에서 결실. 분리 → 재설계 폭 큰 결정 → 새 시스템(Team)이 자연스럽게 흡수
+
+### Weak Points (다음 세션 복습 권장)
+1. **Team이 왜 POCO인가** — MonoBehaviour로 만들면 안 됐던 이유 (매치 reset 비용, 씬 의존)
+2. **TeamRegistry의 Awake 자생성 패턴** — Phase 6에서 Player 개념 도입 시 어떻게 외부 주입으로 전환되는가
+3. **인덱서(`this[int]`) vs 메서드(`GetTeam`) 선택 기준** — 의미가 "ID로 직접 접근"인 경우 인덱서, "의도된 동작이 있는 lookup"이면 메서드
+
+### 미완료 / 다음 세션
+- [ ] TASK-212: Squad 시스템 구축 (`Squad`, `SquadRegistry`, `Unit.SquadId`)
+- TASK-212에서 Squad와 Team의 관계 결정 필요 (Team이 Squads도 보유? SquadRegistry 별도?)
+
+### 메모
+- 코드 변경 5개 파일 + 신규 2개 파일, 모두 사용자가 직접 타이핑
+- Unity 작업(컴포넌트 제거/추가, 디렉토리 rename)도 사용자가 직접 처리
+- 디렉토리 rename(`Placement/` → `Controller/`)은 사용자 자발 정리 — 더 일반적 이름
 

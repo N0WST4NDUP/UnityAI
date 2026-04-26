@@ -202,9 +202,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 136408763}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7242ffe66d8a2fa46b843ba5fd6ba8e2, type: 3}
+  m_Script: {fileID: 11500000, guid: a0ad1497f41157a43adc11198b862704, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RegistryManager
+  m_EditorClassIdentifier: Assembly-CSharp::TeamRegistry
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -664,6 +664,7 @@ MonoBehaviour:
   _phaseManager: {fileID: 136408764}
   _placementController: {fileID: 930826368}
   _grid: {fileID: 598286072}
+  _teamRegistry: {fileID: 136408768}
   _unitPrefab: {fileID: 8329569019411620264, guid: 742ad5a5f7c1a8140824b2eb12f0a345, type: 3}
 --- !u!114 &930826368
 MonoBehaviour:

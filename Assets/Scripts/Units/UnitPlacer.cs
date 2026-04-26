@@ -6,6 +6,7 @@ public class UnitPlacer : MonoBehaviour
     [SerializeField] private PhaseManager _phaseManager;
     [SerializeField] private PlacementController _placementController;
     [SerializeField] private GridField _grid;
+    [SerializeField] private TeamRegistry _teamRegistry;
     [SerializeField] private GameObject _unitPrefab;
 
     // --- Internal ---
@@ -22,10 +23,10 @@ public class UnitPlacer : MonoBehaviour
         if (_placementController.Mode != PlacementMode.Unit) return;
         if (!Input.GetMouseButtonDown(0)) return;
 
-        TryPlaceUnit(0); // TODO: Phase 6에서 채움
+        TryPlaceUnit();
     }
 
-    private void TryPlaceUnit(int groupId)
+    private void TryPlaceUnit()
     {
         var ray = _camera.ScreenPointToRay(Input.mousePosition);
         if (!Physics.Raycast(ray, out RaycastHit hit)) return;
@@ -40,10 +41,10 @@ public class UnitPlacer : MonoBehaviour
             worldPos,
             Quaternion.identity);
 
+        int groupId = _placementController.ActiveGroupId;
+        Team team = _teamRegistry[groupId];
         var soldier = unit.GetComponent<Unit>();
-        soldier.Init(
-            GroupTest.groupId,
-            worldPos,
-            _phaseManager); // TODO: 추후 그룹아이디가 생길 시 수정
+        soldier.Init(groupId, worldPos, _phaseManager);
+        team.AddUnit(soldier);
     }
 }

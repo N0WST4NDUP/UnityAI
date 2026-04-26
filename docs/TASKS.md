@@ -4,7 +4,7 @@
 > **2026-04-20 Feudal HRL 재설계 반영** — Phase 2/3 Task 전면 재편.
 
 ## 진행 중
-- (없음 — TASK-210 완료, TASK-211 착수 대기)
+- (없음 — TASK-211 완료, TASK-212 착수 대기)
 
 ## 확정된 설계 결정 (2026-04-20 Feudal HRL 재설계)
 - ✅ AI 구조: Feudal HRL (커맨더·유닛 완전 독립 학습)
@@ -32,7 +32,10 @@
 ### Stage 1: 인프라 구축 (RL 없이 파이프라인 검증)
 
 - [x] **TASK-210**: DI 전환 — Unit/Structure의 FindGameObjectWithTag 제거 — 2026-04-26
-- [ ] **TASK-211**: Team 시스템 구축 (`Team`, `TeamRegistry`) — 담당: System
+- [x] **TASK-211**: Team 시스템 구축 (`Team`, `TeamRegistry`) — 2026-04-26
+  - Team = POCO (`Assets/Scripts/Teams/Team.cs`), TeamRegistry = MonoBehaviour
+  - RegistryManager 흡수 결정 → 폐기 (TASK-291 자동 해결)
+  - 디렉토리 정리: `Placement/` → `Controller/` rename
 - [ ] **TASK-212**: Squad 시스템 구축 (`Squad`, `SquadRegistry`, `Unit.SquadId`) — 담당: System
 - [ ] **TASK-213**: SquadCommand 데이터 구조 + enum (`TargetPriority`, `StructureHandling`) — 담당: System
 - [ ] **TASK-214**: CommandBroker — 2초 tick 발행 — 담당: System
@@ -52,8 +55,8 @@
 
 ### 제거 대상 (Phase 2 중/종료 시)
 
-- [ ] **TASK-290**: `GroupTest` 정적 변수 제거 (TASK-211 직후)
-- [ ] **TASK-291**: `RegistryManager.Update` 디버그 키 제거 (TASK-211 직후)
+- [x] **TASK-290**: `GroupTest` 정적 변수 제거 — 2026-04-26 (PlacementController.ActiveGroupId로 흡수)
+- [x] **TASK-291**: `RegistryManager.Update` 디버그 키 제거 — 2026-04-26 (RegistryManager 통째 삭제로 자동 해결)
 - [ ] **TASK-292**: `BattleTestInput`·`StructureDamageTester`·`Testing/` 디렉토리 제거 (Phase 2 종료 시)
 
 ---

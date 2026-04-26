@@ -40,9 +40,7 @@ public class StructurePlacer : MonoBehaviour
             worldPos,
             Quaternion.identity);
 
-        structure.GetComponent<Structure>().Init(
-            GroupTest.groupId,
-            worldPos,
-            _phaseManager); // TODO: 추후 그룹아이디가 생길 시 수정
+        int groupId = _placementController.ActiveGroupId;
+        structure.GetComponent<Structure>().Init(groupId, worldPos, _phaseManager);
     }
 }
